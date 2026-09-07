@@ -163,19 +163,7 @@ if st.session_state.search_results:
     if st.session_state.page > total_pages:
         st.session_state.page = total_pages
 
-    st.markdown(f"<p style='color: #17C8F0; font-weight: 600; font-size: 14px;'>POPULAR TRACKS ({total_tracks} tracks)</p>", unsafe_allow_html=True)
-    
-    col_p1, col_p2, col_p3 = st.columns([2, 6, 2])
-    with col_p1:
-        if st.button("◀ Prev", use_container_width=True) and st.session_state.page > 1:
-            st.session_state.page -= 1
-            st.rerun()
-    with col_p2:
-        st.markdown(f"<div style='text-align: center; padding-top: 6px; font-weight: 700; color: #94a3b8;'>Page {st.session_state.page} of {total_pages}</div>", unsafe_allow_html=True)
-    with col_p3:
-        if st.button("Next ▶", use_container_width=True) and st.session_state.page < total_pages:
-            st.session_state.page += 1
-            st.rerun()
+    st.markdown(f"<p style='color: #17C8F0; font-weight: 600; font-size: 14px; margin-bottom: 12px;'>POPULAR TRACKS ({total_tracks} tracks)</p>", unsafe_allow_html=True)
 
     start_idx = (st.session_state.page - 1) * items_per_page
     end_idx = min(start_idx + items_per_page, total_tracks)
@@ -281,3 +269,18 @@ if st.session_state.search_results:
 
             if local_i < len(page_items) - 1:
                 st.markdown("<hr style='margin: 8px 0; border: none; border-top: 1px solid #26262e;'>", unsafe_allow_html=True)
+
+    # 하단에 페이지 번호 버튼 직접 선택형으로 배치
+    if total_pages > 1:
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("<div style='text-align: center; color: #64748b; font-weight: 600; font-size: 12px; margin-bottom: 6px;'>SELECT PAGE</div>", unsafe_allow_html=True)
+        
+        page_cols = st.columns(total_pages)
+        for p in range(1, total_pages + 1):
+            with page_cols[p - 1]:
+                is_current = (p == st.session_state.page)
+                btn_label = f"• {p} •" if is_current else f"{p}"
+                if st.button(btn_label, key=f"bottom_page_{p}", use_container_width=True):
+                    if not is_current:
+                        st.session_state.page = p
+                        st.rerun()
