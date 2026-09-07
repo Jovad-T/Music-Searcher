@@ -2,10 +2,11 @@ import streamlit as st
 import yt_dlp
 import os
 import tempfile
+import base64
 
 st.set_page_config(page_title="Music Searcher", page_icon="🎧", layout="wide")
 
-st.markdown("""
+st.markdown('''
 <style>
     /* Streamlit 기본 헤더, 툴바, 푸터, 관리자 배지 완벽 차단 */
     [data-testid="stHeader"] { display: none !important; }
@@ -156,7 +157,7 @@ st.markdown("""
         padding: 10px;
     }
 </style>
-""", unsafe_allow_html=True)
+''', unsafe_allow_html=True)
 
 if 'search_query' not in st.session_state:
     st.session_state.search_query = ""
@@ -192,8 +193,7 @@ if submit_button:
             ydl_opts = {
                 'extract_flat': 'in_playlist',
                 'quiet': True,
-                'geo_bypass': True,
-                'extractor_args': {'youtube': {'player_client': ['ios', 'android', 'web']}}
+                'geo_bypass': True
             }
             combined_entries = []
             
@@ -312,8 +312,7 @@ if st.session_state.search_results:
                                 ydl_stream_opts = {
                                     'format': 'bestaudio',
                                     'quiet': True,
-                                    'geo_bypass': True,
-                                    'extractor_args': {'youtube': {'player_client': ['ios', 'android', 'web']}}
+                                    'geo_bypass': True
                                 }
                                 with yt_dlp.YoutubeDL(ydl_stream_opts) as ydl_s:
                                     info_s = ydl_s.extract_info(video['url'], download=False)
@@ -345,10 +344,8 @@ if st.session_state.search_results:
                                 }],
                                 'quiet': True,
                                 'geo_bypass': True,
-                                'nocheckcertificate': True,
+                                'nocheckcertificate': True
                             }
-                            if platform == 'YouTube':
-                                ydl_opts_dl['extractor_args'] = {'youtube': {'player_client': ['ios', 'android', 'web']}}
                             if not is_flac:
                                 ydl_opts_dl['postprocessors'][0]['preferredquality'] = '320'
 
