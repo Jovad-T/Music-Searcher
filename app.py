@@ -7,30 +7,18 @@ st.set_page_config(page_title="Music Searcher", page_icon="🎧", layout="wide")
 
 st.markdown("""
 <style>
-    /* Streamlit 상단 기본 헤더, 툴바, 푸터 완전히 숨기기 */
-    [data-testid="stHeader"] {
-        display: none !important;
-    }
-    [data-testid="stToolbar"] {
-        display: none !important;
-    }
-    footer {
-        display: none !important;
-    }
+    [data-testid="stHeader"] { display: none !important; }
+    [data-testid="stToolbar"] { display: none !important; }
+    footer { display: none !important; }
 
-    /* Obsidian Wave 디자인 시스템 컬러 반영 */
     .stApp { 
         background-color: #0A0A0C; 
         color: #f1f5f9;
         padding-top: 2rem;
     }
     
-    /* "Press Enter to submit form" 안내 문구 숨기기 */
-    div[data-testid="InputInstructions"] {
-        display: none !important;
-    }
+    div[data-testid="InputInstructions"] { display: none !important; }
     
-    /* 검색창 내부 왼쪽에 돋보기 아이콘 삽입 및 패딩 조정 */
     .stTextInput input {
         background-color: #121217 !important;
         color: #ffffff !important;
@@ -41,16 +29,20 @@ st.markdown("""
         background-repeat: no-repeat !important;
         background-position: 14px center !important;
     }
-    .stTextInput input::placeholder {
-        color: #64748b !important;
-    }
+    .stTextInput input::placeholder { color: #64748b !important; }
     .stTextInput input:focus {
         border-color: #17C8F0 !important;
         box-shadow: 0 0 10px rgba(23, 200, 240, 0.3);
         background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="%2317C8F0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>') !important;
     }
     
-    /* 일반 버튼 스타일 */
+    .stSelectbox div[data-baseweb="select"] {
+        background-color: #121217 !important;
+        border: 1px solid #26262e !important;
+        border-radius: 8px !important;
+        color: #ffffff !important;
+    }
+
     .stButton button {
         background-color: #121217 !important;
         color: #ffffff !important;
@@ -65,7 +57,6 @@ st.markdown("""
         border-color: #17C8F0 !important;
     }
 
-    /* 폼 제출 버튼 (Search now!) 일렉트릭 시안 포인트 강조 */
     .stFormSubmitButton button {
         background-color: #17C8F0 !important;
         color: #0A0A0C !important;
@@ -79,7 +70,7 @@ st.markdown("""
         color: #0A0A0C !important;
     }
 
-    .mp3-badge {
+    .format-badge {
         background-color: #121217; color: #17C8F0; font-size: 11px; 
         font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-left: 6px;
         border: 1px solid #26262e;
@@ -115,7 +106,12 @@ if 'download_ready' not in st.session_state:
     st.session_state.download_ready = {}
 
 with st.form(key='search_form'):
-    user_input = st.text_input("Search", label_visibility="collapsed", value=st.session_state.search_query, placeholder="Search for songs, artists...")
+    col_input, col_fmt = st.columns([4, 1])
+    with col_input:
+        user_input = st.text_input("Search", label_visibility="collapsed", value=st.session_state.search_query, placeholder="Search for songs, artists...")
+    with col_fmt:
+        audio_format = st.selectbox("Format", ["MP3 (320k)", "FLAC"], label_visibility="collapsed")
+    
     submit_button = st.form_submit_button(label="Search now!")
 
 if submit_button:
@@ -203,11 +199,12 @@ if st.session_state.search_results:
             sc_icon = '<svg height="15" width="24" viewBox="0 0 24 24" style="fill: #f97316; vertical-align: middle; margin-right: 6px;"><path d="M19.36 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.64-4.96z"/></svg>'
             
             platform_html = yt_icon if platform == 'YouTube' else sc_icon
+            badge_text = "FLAC" if "FLAC" in audio_format else "MP3"
             
             col_info, col_meta, col_actions = st.columns([5, 4, 3])
             
             with col_info:
-                st.markdown(f"{platform_html} <span style='color: #f1f5f9; font-weight: 600;'>{video.get('title')}</span> <span class='mp3-badge'>MP3</span>", unsafe_allow_html=True)
+                st.markdown(f"{platform_html} <span style='color: #f1f5f9; font-weight: 600;'>{video.get('title')}</span> <span class='format-badge'>{badge_text}</span>", unsafe_allow_html=True)
                 st.markdown(f"<span style='color: #64748b; font-size: 12px; margin-left: 26px;'>{video.get('uploader', '정보 없음')}</span>", unsafe_allow_html=True)
                 
             with col_meta:
@@ -215,7 +212,8 @@ if st.session_state.search_results:
                 with m1:
                     st.markdown(f"<div class='meta-pill'>{size_str}</div>", unsafe_allow_html=True)
                 with m2:
-                    st.markdown(f"<div class='meta-pill'>320 kbps</div>", unsafe_allow_html=True)
+                    display_kbps = "Lossless" if "FLAC" in audio_format else "320 kbps"
+                    st.markdown(f"<div class='meta-pill'>{display_kbps}</div>", unsafe_allow_html=True)
                 with m3:
                     st.markdown(f"<div class='meta-pill'>{time_str}</div>", unsafe_allow_html=True)
                         
@@ -233,8 +231,11 @@ if st.session_state.search_results:
                             except Exception as e:
                                 st.error(f"Failed: {e}")
                 with b2:
-                    if st.button("⬇ Download", key=f"dl_prep_{i}", help="Prepare Download", use_container_width=True):
-                        with st.spinner("Converting to 320k MP3..."):
+                    dl_label = "⬇ FLAC" if "FLAC" in audio_format else "⬇ Download"
+                    if st.button(dl_label, key=f"dl_prep_{i}", help="Prepare Download", use_container_width=True):
+                        is_flac_target = "FLAC" in audio_format
+                        target_codec = 'flac' if is_flac_target else 'mp3'
+                        with st.spinner(f"Converting to {target_codec.upper()}..."):
                             try:
                                 temp_dir = tempfile.gettempdir()
                                 ydl_opts_dl = {
@@ -242,22 +243,25 @@ if st.session_state.search_results:
                                     'outtmpl': os.path.join(temp_dir, '%(id)s.%(ext)s'),
                                     'postprocessors': [{
                                         'key': 'FFmpegExtractAudio',
-                                        'preferredcodec': 'mp3',
-                                        'preferredquality': '320',
+                                        'preferredcodec': target_codec,
                                     }],
                                     'quiet': True
                                 }
+                                if not is_flac_target:
+                                    ydl_opts_dl['postprocessors'][0]['preferredquality'] = '320'
+
                                 with yt_dlp.YoutubeDL(ydl_opts_dl) as ydl_dl:
                                     info_dict = ydl_dl.extract_info(video['url'], download=True)
                                     file_path = ydl_dl.prepare_filename(info_dict)
                                     base, _ = os.path.splitext(file_path)
-                                    mp3_path = base + ".mp3"
+                                    final_ext = ".flac" if is_flac_target else ".mp3"
+                                    audio_path = base + final_ext
                                     
-                                    if os.path.exists(mp3_path):
-                                        with open(mp3_path, "rb") as f:
+                                    if os.path.exists(audio_path):
+                                        with open(audio_path, "rb") as f:
                                             st.session_state.download_ready[i] = {
                                                 "data": f.read(),
-                                                "filename": f"{video.get('title', 'track')}.mp3"
+                                                "filename": f"{video.get('title', 'track')}{final_ext}"
                                             }
                             except Exception as e:
                                 st.error(f"Failed: {e}")
@@ -268,7 +272,7 @@ if st.session_state.search_results:
                     label=f"💾 Save '{item['filename']}' to PC",
                     data=item['data'],
                     file_name=item['filename'],
-                    mime="audio/mpeg",
+                    mime="audio/flac" if item['filename'].endswith('.flac') else "audio/mpeg",
                     key=f"save_file_{i}"
                 )
                                 
