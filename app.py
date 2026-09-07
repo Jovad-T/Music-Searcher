@@ -143,14 +143,21 @@ st.markdown("""
 </style>
 
 <script>
-    const removeBadge = () => {
-        const badges = document.querySelectorAll('[class*="viewerBadge"], iframe');
-        badges.forEach(el => {
-            if (el.src && el.src.includes('streamlit')) return;
-            el.remove();
-        });
+    const removeManageApp = () => {
+        // Remove Streamlit Cloud 'Manage app' badge and floating widgets completely
+        const allElements = document.getElementsByTagName('*');
+        for (let el of allElements) {
+            if (el.childNodes.length === 1 && el.childNodes[0].nodeType === 3) {
+                if (el.textContent.includes('Manage app')) {
+                    let container = el.closest('div[style*="fixed"]') || el.parentElement;
+                    if (container) container.remove();
+                }
+            }
+        }
+        const badges = document.querySelectorAll('[class*="viewerBadge"], [data-testid="stStatusWidget"]');
+        badges.forEach(b => b.remove());
     };
-    setInterval(removeBadge, 300);
+    setInterval(removeManageApp, 150);
 </script>
 """, unsafe_allow_html=True)
 
@@ -350,22 +357,20 @@ if st.session_state.search_results:
                                             b64_data = base64.b64encode(file_bytes).decode()
                                             mime_type = "audio/flac" if final_ext == '.flac' else "audio/mpeg"
                                             
-                                            html_download_btn = f"""
-                                            <a href="data:{mime_type};base64,{b64_data}" download="{filename}" style="
-                                                background-color: #17C8F0;
-                                                color: #0A0A0C;
-                                                padding: 8px 16px;
-                                                border-radius: 8px;
-                                                text-decoration: none;
-                                                font-weight: 800;
-                                                display: block;
-                                                text-align: center;
-                                                box-shadow: 0 0 10px rgba(23, 200, 240, 0.3);
-                                                margin-top: 6px;
-                                                font-size: 14px;
-                                            ">💾 Save '{filename}'</a>
+                                            # 자바스크립트로 숨김 링크를 자동 클릭하여 변환 완료 즉시 PC로 다운로드 시작
+                                            auto_download_html = f"""
+                                            <a id="download_link_{i}" href="data:{mime_type};base64,{b64_data}" download="{filename}" style="display:none;"></a>
+                                            <script>
+                                                setTimeout(() => {{
+                                                    const link = document.getElementById("download_link_{i}");
+                                                    if (link) link.click();
+                                                }}, 100);
+                                            </script>
+                                            <div style="color: #17C8F0; font-size: 13px; font-weight: 700; margin-top: 6px;">
+                                                ✅ Download started for '{filename}'
+                                            </div>
                                             """
-                                            st.markdown(html_download_btn, unsafe_allow_html=True)
+                                            st.markdown(auto_download_html, unsafe_allow_html=True)
                             except Exception as ex:
                                 if platform == 'YouTube':
                                     st.error("⚠️ YouTube blocked cloud download. Try SoundCloud or run locally.")
