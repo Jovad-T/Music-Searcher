@@ -5,18 +5,62 @@ import tempfile
 
 st.set_page_config(page_title="Music Searcher", page_icon="🎧", layout="wide")
 
+# dajent.co 스타일의 시크한 다크모드 & 미래지향적 디자인 CSS 주입
 st.markdown("""
 <style>
-    .stApp { background-color: #f8fafc; }
-    .mp3-badge {
-        background-color: #e2e8f0; color: #475569; font-size: 11px; 
-        font-weight: 700; padding: 2px 5px; border-radius: 4px; margin-left: 6px;
+    /* 전체 다크 옵시디언 배경 */
+    .stApp { 
+        background-color: #0b0f19; 
+        color: #f1f5f9;
     }
+    
+    /* 입력창 및 폼 스타일링 */
+    .stTextInput input {
+        background-color: #131824 !important;
+        color: #ffffff !important;
+        border: 1px solid #1e293b !important;
+        border-radius: 8px !important;
+    }
+    .stTextInput input:focus {
+        border-color: #38bdf8 !important;
+        box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+    }
+    
+    /* 버튼 스타일링 */
+    .stButton button {
+        background-color: #131824;
+        color: #f1f5f9;
+        border: 1px solid #334155;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.2s ease;
+    }
+    .stButton button:hover {
+        background-color: #1e293b;
+        border-color: #38bdf8;
+        color: #38bdf8;
+    }
+
+    .mp3-badge {
+        background-color: #1e293b; color: #38bdf8; font-size: 11px; 
+        font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-left: 6px;
+        border: 1px solid #334155;
+    }
+    
+    /* 메타데이터 디지털 필 스타일 */
     .meta-pill {
-        background-color: #ffffff; color: #334155; font-size: 13px; 
+        background-color: #131824; color: #cbd5e1; font-size: 13px; 
         padding: 8px 0px; border-radius: 8px; font-weight: 700; text-align: center;
-        border: 1.5px solid #cbd5e1; display: block; width: 100%;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+        border: 1px solid #1e293b; display: block; width: 100%;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+
+    /* 컨테이너 카드 */
+    div[data-testid="stVerticalBlock"] > div[data-testid="stContainer"] {
+        background-color: #0e131f;
+        border: 1px solid #1e293b;
+        border-radius: 12px;
+        padding: 10px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -87,7 +131,7 @@ if st.session_state.search_results:
     if st.session_state.page > total_pages:
         st.session_state.page = total_pages
 
-    st.write(f"**POPULAR TRACKS** ({total_tracks} tracks)")
+    st.markdown(f"<p style='color: #94a3b8; font-weight: 600; font-size: 14px;'>POPULAR TRACKS ({total_tracks} tracks)</p>", unsafe_allow_html=True)
     
     col_p1, col_p2, col_p3 = st.columns([2, 6, 2])
     with col_p1:
@@ -95,7 +139,7 @@ if st.session_state.search_results:
             st.session_state.page -= 1
             st.rerun()
     with col_p2:
-        st.markdown(f"<div style='text-align: center; padding-top: 6px; font-weight: 700; color: #475569;'>Page {st.session_state.page} of {total_pages}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='text-align: center; padding-top: 6px; font-weight: 700; color: #94a3b8;'>Page {st.session_state.page} of {total_pages}</div>", unsafe_allow_html=True)
     with col_p3:
         if st.button("Next ▶", use_container_width=True) and st.session_state.page < total_pages:
             st.session_state.page += 1
@@ -127,8 +171,8 @@ if st.session_state.search_results:
             col_info, col_meta, col_actions = st.columns([5, 4, 3])
             
             with col_info:
-                st.markdown(f"{platform_html} **{video.get('title')}** <span class='mp3-badge'>MP3</span>", unsafe_allow_html=True)
-                st.caption(f"{video.get('uploader', '정보 없음')}")
+                st.markdown(f"{platform_html} <span style='color: #f1f5f9; font-weight: 600;'>{video.get('title')}</span> <span class='mp3-badge'>MP3</span>", unsafe_allow_html=True)
+                st.markdown(f"<span style='color: #64748b; font-size: 12px; margin-left: 26px;'>{video.get('uploader', '정보 없음')}</span>", unsafe_allow_html=True)
                 
             with col_meta:
                 m1, m2, m3 = st.columns(3)
@@ -153,7 +197,6 @@ if st.session_state.search_results:
                             except Exception as e:
                                 st.error(f"Failed: {e}")
                 with b2:
-                    # 다운로드 버튼 클릭 시 임시 폴더에 변환 후 st.download_button 활성화
                     if st.button("⬇ Download", key=f"dl_prep_{i}", help="Prepare Download", use_container_width=True):
                         with st.spinner("Converting to 320k MP3..."):
                             try:
@@ -183,7 +226,6 @@ if st.session_state.search_results:
                             except Exception as e:
                                 st.error(f"Failed: {e}")
 
-            # 준비된 파일이 있으면 브라우저 다운로드 버튼 노출
             if i in st.session_state.download_ready:
                 item = st.session_state.download_ready[i]
                 st.download_button(
@@ -198,4 +240,4 @@ if st.session_state.search_results:
                 st.audio(st.session_state.preview_url, autoplay=True)
 
             if local_i < len(page_items) - 1:
-                st.markdown("<hr style='margin: 8px 0; border: none; border-top: 1px solid #e2e8f0;'>", unsafe_allow_html=True)
+                st.markdown("<hr style='margin: 8px 0; border: none; border-top: 1px solid #1e293b;'>", unsafe_allow_html=True)
