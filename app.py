@@ -42,7 +42,7 @@ st.markdown("""
         border-color: #17C8F0 !important;
     }
 
-    /* 폼 제출 버튼 (Search now!) 가시성 완벽 확보 */
+    /* 폼 제출 버튼 (Search now!) 가시성 및 일렉트릭 시안 포인트 강조 */
     .stFormSubmitButton button {
         background-color: #17C8F0 !important;
         color: #0A0A0C !important;
@@ -92,7 +92,8 @@ if 'download_ready' not in st.session_state:
     st.session_state.download_ready = {}
 
 with st.form(key='search_form'):
-    user_input = st.text_input("Search for songs, artists...", value=st.session_state.search_query, placeholder="Search for songs, artists...")
+    # label_visibility="collapsed"를 통해 중복 라벨을 완전히 숨기고 미니멀한 검색창 완성
+    user_input = st.text_input("Search", label_visibility="collapsed", value=st.session_state.search_query, placeholder="Search for songs, artists...")
     submit_button = st.form_submit_button(label="Search now!")
 
 if submit_button:
