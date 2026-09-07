@@ -2,7 +2,6 @@ import streamlit as st
 import yt_dlp
 import os
 import tempfile
-import base64
 
 st.set_page_config(page_title="Music Searcher", page_icon="🎧", layout="wide")
 
@@ -121,6 +120,22 @@ st.markdown("""
         border-color: #17C8F0 !important;
     }
 
+    div[data-testid="stDownloadButton"] button {
+        background-color: #17C8F0 !important;
+        color: #0A0A0C !important;
+        border: none !important;
+        border-radius: 8px !important;
+        font-weight: 800 !important;
+        width: 100% !important;
+        height: 38px !important;
+        transition: all 0.2s ease;
+    }
+    div[data-testid="stDownloadButton"] button:hover {
+        background-color: #38bdf8 !important;
+        color: #0A0A0C !important;
+        box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+    }
+
     .format-badge {
         background-color: #121217; color: #17C8F0; font-size: 11px; 
         font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-left: 6px;
@@ -141,24 +156,6 @@ st.markdown("""
         padding: 10px;
     }
 </style>
-
-<script>
-    const removeManageApp = () => {
-        // 우측 하단 'Manage app' 배지 및 플로팅 컨테이너 강제 제거
-        const allElements = document.getElementsByTagName('*');
-        for (let el of allElements) {
-            if (el.childNodes.length === 1 && el.childNodes[0].nodeType === 3) {
-                if (el.textContent.includes('Manage app')) {
-                    let container = el.closest('div[style*="fixed"]') || el.parentElement;
-                    if (container) container.remove();
-                }
-            }
-        }
-        const badges = document.querySelectorAll('[class*="viewerBadge"], [data-testid="stStatusWidget"]');
-        badges.forEach(b => b.remove());
-    };
-    setInterval(removeManageApp, 100);
-</script>
 """, unsafe_allow_html=True)
 
 if 'search_query' not in st.session_state:
@@ -175,6 +172,8 @@ if 'active_format' not in st.session_state:
     st.session_state.active_format = "MP3"
 if 'download_queue' not in st.session_state:
     st.session_state.download_queue = []
+if 'download_ready' not in st.session_state:
+    st.session_state.download_ready = {}
 if 'download_status' not in st.session_state:
     st.session_state.download_status = {}
 
@@ -187,6 +186,7 @@ if submit_button:
         st.session_state.search_query = user_input
         st.session_state.page = 1
         st.session_state.download_queue = []
+        st.session_state.download_ready = {}
         st.session_state.download_status = {}
         with st.spinner("Searching tracks... Please wait!"):
             ydl_opts = {
@@ -240,6 +240,7 @@ if st.session_state.search_results:
             if not is_mp3_active:
                 st.session_state.active_format = "MP3"
                 st.session_state.download_queue = []
+                st.session_state.download_ready = {}
                 st.session_state.download_status = {}
                 st.rerun()
     with f_col2:
@@ -249,6 +250,7 @@ if st.session_state.search_results:
             if not is_flac_active:
                 st.session_state.active_format = "FLAC"
                 st.session_state.download_queue = []
+                st.session_state.download_ready = {}
                 st.session_state.download_status = {}
                 st.rerun()
 
@@ -361,31 +363,32 @@ if st.session_state.search_results:
                                     with open(audio_path, "rb") as f:
                                         file_bytes = f.read()
                                         filename = f"{video.get('title', 'track')}{final_ext}"
-                                        b64_data = base64.b64encode(file_bytes).decode()
-                                        mime_type = "audio/flac" if final_ext == '.flac' else "audio/mpeg"
-                                        
-                                        st.session_state.download_status[i] = f"✅ Completed"
-                                        
-                                        # 즉시 자동 다운로드 트리거용 숨김 JS/HTML
-                                        auto_download_html = f"""
-                                        <a id="download_link_{i}" href="data:{mime_type};base64,{b64_data}" download="{filename}" style="display:none;"></a>
-                                        <script>
-                                            setTimeout(() => {{
-                                                const link = document.getElementById("download_link_{i}");
-                                                if (link) link.click();
-                                            }}, 100);
-                                        </script>
-                                        """
-                                        st.markdown(auto_download_html, unsafe_allow_html=True)
+                                        st.session_state.download_ready[i] = {
+                                            "data": file_bytes,
+                                            "filename": filename
+                                        }
+                                        st.session_state.download_status[i] = "✅ Ready"
                         except Exception as ex:
                             if platform == 'YouTube':
                                 st.session_state.download_status[i] = "⚠️ YouTube blocked."
                             else:
                                 st.session_state.download_status[i] = "⚠️ Failed"
 
-            if i in st.session_state.download_status:
+            if i in st.session_state.download_ready:
+                item = st.session_state.download_ready[i]
+                mime_type = "audio/flac" if item['filename'].endswith('.flac') else "audio/mpeg"
+                st.download_button(
+                    label=f"💾 Save '{item['filename']}'",
+                    data=item['data'],
+                    file_name=item['filename'],
+                    mime=mime_type,
+                    key=f"save_ready_{i}",
+                    use_container_width=True
+                )
+
+            if i in st.session_state.download_status and i not in st.session_state.download_ready:
                 status_text = st.session_state.download_status[i]
-                color_code = "#17C8F0" if "Completed" in status_text else ("#38bdf8" if "Converting" in status_text else "#ef4444")
+                color_code = "#17C8F0" if "Ready" in status_text else ("#38bdf8" if "Converting" in status_text else "#ef4444")
                 st.markdown(f"<div style='color: {color_code}; font-size: 12px; font-weight: 700; margin-top: 4px; text-align: right;'>{status_text}</div>", unsafe_allow_html=True)
                                 
             if st.session_state.active_preview == i and st.session_state.preview_url:
