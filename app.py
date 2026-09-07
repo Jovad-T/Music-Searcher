@@ -36,13 +36,6 @@ st.markdown("""
         background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="%2317C8F0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>') !important;
     }
     
-    .stSelectbox div[data-baseweb="select"] {
-        background-color: #121217 !important;
-        border: 1px solid #26262e !important;
-        border-radius: 8px !important;
-        color: #ffffff !important;
-    }
-
     .stButton button {
         background-color: #121217 !important;
         color: #ffffff !important;
@@ -104,14 +97,12 @@ if 'preview_url' not in st.session_state:
     st.session_state.preview_url = None
 if 'download_ready' not in st.session_state:
     st.session_state.download_ready = {}
+if 'active_format' not in st.session_state:
+    st.session_state.active_format = "MP3"
 
+# 검색창 영역
 with st.form(key='search_form'):
-    col_input, col_fmt = st.columns([4, 1])
-    with col_input:
-        user_input = st.text_input("Search", label_visibility="collapsed", value=st.session_state.search_query, placeholder="Search for songs, artists...")
-    with col_fmt:
-        audio_format = st.selectbox("Format", ["MP3 (320k)", "FLAC"], label_visibility="collapsed")
-    
+    user_input = st.text_input("Search", label_visibility="collapsed", value=st.session_state.search_query, placeholder="Search for songs, artists...")
     submit_button = st.form_submit_button(label="Search now!")
 
 if submit_button:
@@ -155,7 +146,29 @@ if submit_button:
     else:
         st.warning("Please enter a search query!")
 
+# 검색 결과가 있을 때 포맷 선택 필터 탭 (Pill 형태)과 결과 목록 표시
 if st.session_state.search_results:
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # 포맷 선택 필터 탭 레이아웃
+    f_col1, f_col2, f_col_rest = st.columns([1.2, 1.2, 8])
+    with f_col1:
+        is_mp3_active = st.session_state.active_format == "MP3"
+        mp3_label = "● MP3 (320k)" if is_mp3_active else "MP3 (320k)"
+        if st.button(mp3_label, use_container_width=True, key="filter_mp3"):
+            if not is_mp3_active:
+                st.session_state.active_format = "MP3"
+                st.session_state.download_ready = {}
+                st.rerun()
+    with f_col2:
+        is_flac_active = st.session_state.active_format == "FLAC"
+        flac_label = "● FLAC" if is_flac_active else "FLAC"
+        if st.button(flac_label, use_container_width=True, key="filter_flac"):
+            if not is_flac_active:
+                st.session_state.active_format = "FLAC"
+                st.session_state.download_ready = {}
+                st.rerun()
+
     total_tracks = len(st.session_state.search_results)
     items_per_page = 50
     total_pages = max(1, (total_tracks - 1) // items_per_page + 1)
@@ -163,7 +176,7 @@ if st.session_state.search_results:
     if st.session_state.page > total_pages:
         st.session_state.page = total_pages
 
-    st.markdown(f"<p style='color: #17C8F0; font-weight: 600; font-size: 14px; margin-bottom: 12px;'>POPULAR TRACKS ({total_tracks} tracks)</p>", unsafe_allow_html=True)
+    st.markdown(f"<p style='color: #17C8F0; font-weight: 600; font-size: 14px; margin-top: 10px; margin-bottom: 12px;'>SEARCH RESULTS ({total_tracks} tracks) - [{st.session_state.active_format} MODE]</p>", unsafe_allow_html=True)
 
     start_idx = (st.session_state.page - 1) * items_per_page
     end_idx = min(start_idx + items_per_page, total_tracks)
@@ -187,7 +200,7 @@ if st.session_state.search_results:
             sc_icon = '<svg height="15" width="24" viewBox="0 0 24 24" style="fill: #f97316; vertical-align: middle; margin-right: 6px;"><path d="M19.36 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.64-4.96z"/></svg>'
             
             platform_html = yt_icon if platform == 'YouTube' else sc_icon
-            badge_text = "FLAC" if "FLAC" in audio_format else "MP3"
+            badge_text = st.session_state.active_format
             
             col_info, col_meta, col_actions = st.columns([5, 4, 3])
             
@@ -200,7 +213,7 @@ if st.session_state.search_results:
                 with m1:
                     st.markdown(f"<div class='meta-pill'>{size_str}</div>", unsafe_allow_html=True)
                 with m2:
-                    display_kbps = "Lossless" if "FLAC" in audio_format else "320 kbps"
+                    display_kbps = "Lossless" if st.session_state.active_format == "FLAC" else "320 kbps"
                     st.markdown(f"<div class='meta-pill'>{display_kbps}</div>", unsafe_allow_html=True)
                 with m3:
                     st.markdown(f"<div class='meta-pill'>{time_str}</div>", unsafe_allow_html=True)
@@ -219,10 +232,10 @@ if st.session_state.search_results:
                             except Exception as e:
                                 st.error(f"Failed: {e}")
                 with b2:
-                    dl_label = "⬇ FLAC" if "FLAC" in audio_format else "⬇ Download"
+                    is_flac = st.session_state.active_format == "FLAC"
+                    dl_label = "⬇ FLAC" if is_flac else "⬇ Download"
                     if st.button(dl_label, key=f"dl_prep_{i}", help="Prepare Download", use_container_width=True):
-                        is_flac_target = "FLAC" in audio_format
-                        target_codec = 'flac' if is_flac_target else 'mp3'
+                        target_codec = 'flac' if is_flac else 'mp3'
                         with st.spinner(f"Converting to {target_codec.upper()}..."):
                             try:
                                 temp_dir = tempfile.gettempdir()
@@ -235,14 +248,14 @@ if st.session_state.search_results:
                                     }],
                                     'quiet': True
                                 }
-                                if not is_flac_target:
+                                if not is_flac:
                                     ydl_opts_dl['postprocessors'][0]['preferredquality'] = '320'
 
                                 with yt_dlp.YoutubeDL(ydl_opts_dl) as ydl_dl:
                                     info_dict = ydl_dl.extract_info(video['url'], download=True)
                                     file_path = ydl_dl.prepare_filename(info_dict)
                                     base, _ = os.path.splitext(file_path)
-                                    final_ext = ".flac" if is_flac_target else ".mp3"
+                                    final_ext = ".flac" if is_flac else ".mp3"
                                     audio_path = base + final_ext
                                     
                                     if os.path.exists(audio_path):
@@ -270,7 +283,7 @@ if st.session_state.search_results:
             if local_i < len(page_items) - 1:
                 st.markdown("<hr style='margin: 8px 0; border: none; border-top: 1px solid #26262e;'>", unsafe_allow_html=True)
 
-    # 하단에 페이지 번호 버튼 직접 선택형으로 배치
+    # 하단 페이지 번호 선택형 버튼
     if total_pages > 1:
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("<div style='text-align: center; color: #64748b; font-weight: 600; font-size: 12px; margin-bottom: 6px;'>SELECT PAGE</div>", unsafe_allow_html=True)
