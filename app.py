@@ -7,57 +7,56 @@ st.set_page_config(page_title="Music Searcher", page_icon="🎧", layout="wide")
 
 st.markdown("""
 <style>
-    /* 전체 다크 옵시디언 배경 */
+    /* Obsidian Wave 디자인 시스템 컬러 반영 */
     .stApp { 
-        background-color: #0b0f19; 
+        background-color: #0A0A0C; 
         color: #f1f5f9;
     }
     
-    /* 입력창 스타일링 (글자색 흰색, 배경 어둡게) */
     .stTextInput input {
-        background-color: #131824 !important;
+        background-color: #121217 !important;
         color: #ffffff !important;
-        border: 1px solid #334155 !important;
+        border: 1px solid #26262e !important;
         border-radius: 8px !important;
     }
     .stTextInput input::placeholder {
         color: #64748b !important;
     }
     .stTextInput input:focus {
-        border-color: #38bdf8 !important;
-        box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+        border-color: #17C8F0 !important;
+        box-shadow: 0 0 10px rgba(23, 200, 240, 0.3);
     }
     
-    /* 버튼 스타일링 (가시성 확보를 위해 배경과 글자색 명확히 지정) */
     .stButton button {
-        background-color: #1e293b !important;
+        background-color: #121217 !important;
         color: #ffffff !important;
-        border: 1px solid #475569 !important;
+        border: 1px solid #26262e !important;
         border-radius: 8px !important;
         font-weight: 700 !important;
+        transition: all 0.2s ease;
     }
     .stButton button:hover {
-        background-color: #38bdf8 !important;
-        color: #0b0f19 !important;
-        border-color: #38bdf8 !important;
+        background-color: #17C8F0 !important;
+        color: #0A0A0C !important;
+        border-color: #17C8F0 !important;
     }
 
     .mp3-badge {
-        background-color: #1e293b; color: #38bdf8; font-size: 11px; 
+        background-color: #121217; color: #17C8F0; font-size: 11px; 
         font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-left: 6px;
-        border: 1px solid #334155;
+        border: 1px solid #26262e;
     }
     
     .meta-pill {
-        background-color: #131824; color: #cbd5e1; font-size: 13px; 
+        background-color: #121217; color: #cbd5e1; font-size: 13px; 
         padding: 8px 0px; border-radius: 8px; font-weight: 700; text-align: center;
-        border: 1px solid #1e293b; display: block; width: 100%;
+        border: 1px solid #26262e; display: block; width: 100%;
         box-shadow: 0 1px 3px rgba(0,0,0,0.2);
     }
 
     div[data-testid="stVerticalBlock"] > div[data-testid="stContainer"] {
-        background-color: #0e131f;
-        border: 1px solid #1e293b;
+        background-color: #121217;
+        border: 1px solid #26262e;
         border-radius: 12px;
         padding: 10px;
     }
@@ -130,7 +129,7 @@ if st.session_state.search_results:
     if st.session_state.page > total_pages:
         st.session_state.page = total_pages
 
-    st.markdown(f"<p style='color: #94a3b8; font-weight: 600; font-size: 14px;'>POPULAR TRACKS ({total_tracks} tracks)</p>", unsafe_allow_html=True)
+    st.markdown(f"<p style='color: #17C8F0; font-weight: 600; font-size: 14px;'>POPULAR TRACKS ({total_tracks} tracks)</p>", unsafe_allow_html=True)
     
     col_p1, col_p2, col_p3 = st.columns([2, 6, 2])
     with col_p1:
@@ -239,4 +238,4 @@ if st.session_state.search_results:
                 st.audio(st.session_state.preview_url, autoplay=True)
 
             if local_i < len(page_items) - 1:
-                st.markdown("<hr style='margin: 8px 0; border: none; border-top: 1px solid #1e293b;'>", unsafe_allow_html=True)
+                st.markdown("<hr style='margin: 8px 0; border: none; border-top: 1px solid #26262e;'>", unsafe_allow_html=True)
