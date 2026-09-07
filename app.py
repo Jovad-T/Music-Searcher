@@ -100,7 +100,6 @@ if 'download_ready' not in st.session_state:
 if 'active_format' not in st.session_state:
     st.session_state.active_format = "MP3"
 
-# 검색창 영역
 with st.form(key='search_form'):
     user_input = st.text_input("Search", label_visibility="collapsed", value=st.session_state.search_query, placeholder="Search for songs, artists...")
     submit_button = st.form_submit_button(label="Search now!")
@@ -146,15 +145,14 @@ if submit_button:
     else:
         st.warning("Please enter a search query!")
 
-# 검색 결과가 있을 때 포맷 선택 필터 탭 (Pill 형태)과 결과 목록 표시
 if st.session_state.search_results:
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # 포맷 선택 필터 탭 레이아웃
-    f_col1, f_col2, f_col_rest = st.columns([1.2, 1.2, 8])
+    # 깔끔하게 다듬어진 MP3 / FLAC 필터 탭
+    f_col1, f_col2, f_col_rest = st.columns([1, 1, 8])
     with f_col1:
         is_mp3_active = st.session_state.active_format == "MP3"
-        mp3_label = "● MP3 (320k)" if is_mp3_active else "MP3 (320k)"
+        mp3_label = "● MP3" if is_mp3_active else "MP3"
         if st.button(mp3_label, use_container_width=True, key="filter_mp3"):
             if not is_mp3_active:
                 st.session_state.active_format = "MP3"
@@ -283,7 +281,6 @@ if st.session_state.search_results:
             if local_i < len(page_items) - 1:
                 st.markdown("<hr style='margin: 8px 0; border: none; border-top: 1px solid #26262e;'>", unsafe_allow_html=True)
 
-    # 하단 페이지 번호 선택형 버튼
     if total_pages > 1:
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("<div style='text-align: center; color: #64748b; font-weight: 600; font-size: 12px; margin-bottom: 6px;'>SELECT PAGE</div>", unsafe_allow_html=True)
