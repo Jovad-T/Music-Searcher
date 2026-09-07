@@ -7,7 +7,6 @@ st.set_page_config(page_title="Music Searcher", page_icon="🎧", layout="wide")
 
 st.markdown("""
 <style>
-    /* Streamlit 기본 헤더, 툴바, 푸터, 우측 하단 Manage app 배지 완전히 숨기기 */
     [data-testid="stHeader"] { display: none !important; }
     [data-testid="stToolbar"] { display: none !important; }
     footer { display: none !important; }
@@ -22,21 +21,22 @@ st.markdown("""
     
     div[data-testid="InputInstructions"] { display: none !important; }
     
+    /* 검색창을 훨씬 눈에 띄고 시크하게 강조 (일렉트릭 시안 테두리 및 은은한 네온 글로우 효과) */
     .stTextInput input {
         background-color: #121217 !important;
         color: #ffffff !important;
-        border: 1px solid #26262e !important;
-        border-radius: 8px !important;
+        border: 2px solid #17C8F0 !important;
+        border-radius: 10px !important;
         padding-left: 42px !important;
-        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="%2364748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>') !important;
+        box-shadow: 0 0 15px rgba(23, 200, 240, 0.3) !important;
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="%2317C8F0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>') !important;
         background-repeat: no-repeat !important;
         background-position: 14px center !important;
     }
-    .stTextInput input::placeholder { color: #64748b !important; }
+    .stTextInput input::placeholder { color: #94a3b8 !important; }
     .stTextInput input:focus {
-        border-color: #17C8F0 !important;
-        box-shadow: 0 0 10px rgba(23, 200, 240, 0.3);
-        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="%2317C8F0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>') !important;
+        border-color: #38bdf8 !important;
+        box-shadow: 0 0 20px rgba(56, 189, 248, 0.5) !important;
     }
     
     .stButton button {
