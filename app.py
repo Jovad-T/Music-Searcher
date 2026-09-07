@@ -13,11 +13,21 @@ st.markdown("""
         color: #f1f5f9;
     }
     
+    /* "Press Enter to submit form" 안내 문구 숨기기 */
+    div[data-testid="InputInstructions"] {
+        display: none !important;
+    }
+    
+    /* 검색창 내부 왼쪽에 돋보기 아이콘 삽입 및 패딩 조정 */
     .stTextInput input {
         background-color: #121217 !important;
         color: #ffffff !important;
         border: 1px solid #26262e !important;
         border-radius: 8px !important;
+        padding-left: 42px !important;
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="%2364748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>') !important;
+        background-repeat: no-repeat !important;
+        background-position: 14px center !important;
     }
     .stTextInput input::placeholder {
         color: #64748b !important;
@@ -25,6 +35,7 @@ st.markdown("""
     .stTextInput input:focus {
         border-color: #17C8F0 !important;
         box-shadow: 0 0 10px rgba(23, 200, 240, 0.3);
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="%2317C8F0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>') !important;
     }
     
     /* 일반 버튼 스타일 */
@@ -42,7 +53,7 @@ st.markdown("""
         border-color: #17C8F0 !important;
     }
 
-    /* 폼 제출 버튼 (Search now!) 가시성 및 일렉트릭 시안 포인트 강조 */
+    /* 폼 제출 버튼 (Search now!) 일렉트릭 시안 포인트 강조 */
     .stFormSubmitButton button {
         background-color: #17C8F0 !important;
         color: #0A0A0C !important;
@@ -92,7 +103,6 @@ if 'download_ready' not in st.session_state:
     st.session_state.download_ready = {}
 
 with st.form(key='search_form'):
-    # label_visibility="collapsed"를 통해 중복 라벨을 완전히 숨기고 미니멀한 검색창 완성
     user_input = st.text_input("Search", label_visibility="collapsed", value=st.session_state.search_query, placeholder="Search for songs, artists...")
     submit_button = st.form_submit_button(label="Search now!")
 
