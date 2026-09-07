@@ -28,7 +28,7 @@ st.markdown("""
         height: 0 !important;
     }
     
-    /* 검색 폼 (하나의 매끄러운 다크 네온 검색창 컨테이너) */
+    /* 검색 폼 컨테이너 */
     div[data-testid="stForm"] {
         background-color: #121217 !important;
         border: 2px solid #17C8F0 !important;
@@ -51,7 +51,7 @@ st.markdown("""
         padding: 0 !important;
     }
 
-    /* Streamlit 내부 인풋 래퍼의 흰색 배경 및 붉은색 포커스 테두리 강제 제거 */
+    /* Streamlit 내부 인풋 래퍼와 입력창 배경을 확실한 다크톤으로 고정 */
     .stTextInput {
         flex-grow: 1 !important;
         margin: 0 !important;
@@ -59,13 +59,13 @@ st.markdown("""
     }
     .stTextInput div[data-baseweb="base-input"],
     .stTextInput div[data-baseweb="input"] {
-        background-color: transparent !important;
+        background-color: #121217 !important;
         border: none !important;
         box-shadow: none !important;
         outline: none !important;
     }
     .stTextInput input {
-        background-color: transparent !important;
+        background-color: #121217 !important;
         color: #ffffff !important;
         border: none !important;
         outline: none !important;
@@ -79,7 +79,7 @@ st.markdown("""
     }
     .stTextInput input::placeholder { color: #64748b !important; }
 
-    /* Search 버튼 텍스트 줄바꿈(Sear / ch) 방지 및 완벽 정렬 */
+    /* Search 버튼 스타일 */
     .stFormSubmitButton {
         margin: 0 !important;
         width: auto !important;
