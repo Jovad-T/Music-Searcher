@@ -127,7 +127,7 @@ st.markdown("""
         border-radius: 8px !important;
         font-weight: 800 !important;
         width: 100% !important;
-        height: 42px !important;
+        height: 40px !important;
         transition: all 0.2s ease;
     }
     div[data-testid="stDownloadButton"] button:hover {
@@ -157,7 +157,6 @@ st.markdown("""
     }
 </style>
 
-<!-- 자바스크립트로 Manage app 배지 요소를 강제 제거 -->
 <script>
     const removeBadge = () => {
         const badges = document.querySelectorAll('[class*="viewerBadge"], iframe');
@@ -166,7 +165,7 @@ st.markdown("""
             el.remove();
         });
     };
-    setInterval(removeBadge, 500);
+    setInterval(removeBadge, 300);
 </script>
 """, unsafe_allow_html=True)
 
@@ -180,10 +179,10 @@ if 'active_preview' not in st.session_state:
     st.session_state.active_preview = None
 if 'preview_url' not in st.session_state:
     st.session_state.preview_url = None
-if 'download_ready' not in st.session_state:
-    st.session_state.download_ready = {}
 if 'active_format' not in st.session_state:
     st.session_state.active_format = "MP3"
+if 'download_queue' not in st.session_state:
+    st.session_state.download_queue = []
 
 with st.form(key='search_form'):
     user_input = st.text_input("Search", label_visibility="collapsed", value=st.session_state.search_query, placeholder="Search for songs, artists...")
@@ -193,7 +192,7 @@ if submit_button:
     if user_input:
         st.session_state.search_query = user_input
         st.session_state.page = 1
-        st.session_state.download_ready = {}
+        st.session_state.download_queue = []
         with st.spinner("Searching tracks... Please wait!"):
             ydl_opts = {
                 'extract_flat': 'in_playlist',
@@ -245,7 +244,7 @@ if st.session_state.search_results:
         if st.button(mp3_label, use_container_width=True, key="filter_mp3"):
             if not is_mp3_active:
                 st.session_state.active_format = "MP3"
-                st.session_state.download_ready = {}
+                st.session_state.download_queue = []
                 st.rerun()
     with f_col2:
         is_flac_active = st.session_state.active_format == "FLAC"
@@ -253,7 +252,7 @@ if st.session_state.search_results:
         if st.button(flac_label, use_container_width=True, key="filter_flac"):
             if not is_flac_active:
                 st.session_state.active_format = "FLAC"
-                st.session_state.download_ready = {}
+                st.session_state.download_queue = []
                 st.rerun()
 
     total_tracks = len(st.session_state.search_results)
@@ -325,10 +324,15 @@ if st.session_state.search_results:
                                 st.warning("Preview unavailable.")
                 with b2:
                     is_flac = st.session_state.active_format == "FLAC"
-                    dl_label = "⬇ FLAC" if is_flac else "⬇ Download"
-                    if st.button(dl_label, key=f"dl_prep_{i}", help="Prepare Download", use_container_width=True):
+                    dl_label = "⬇ Download"
+                    if st.button(dl_label, key=f"dl_btn_{i}", help="Direct Download", use_container_width=True):
                         target_codec = 'flac' if is_flac else 'mp3'
-                        with st.spinner(f"Converting to {target_codec.upper()}..."):
+                        if i not in st.session_state.download_queue:
+                            st.session_state.download_queue.append(i)
+                        queue_total = len(st.session_state.download_queue)
+                        queue_current = st.session_state.download_queue.index(i) + 1
+                        
+                        with st.spinner(f"[{queue_current} of {queue_total}] Converting to {target_codec.upper()}..."):
                             try:
                                 temp_dir = tempfile.gettempdir()
                                 ydl_opts_dl = {
@@ -341,8 +345,9 @@ if st.session_state.search_results:
                                     'quiet': True,
                                     'geo_bypass': True,
                                     'nocheckcertificate': True,
-                                    'extractor_args': {'youtube': {'player_client': ['ios', 'android', 'web']}}
                                 }
+                                if platform == 'YouTube':
+                                    ydl_opts_dl['extractor_args'] = {'youtube': {'player_client': ['ios', 'android', 'web']}}
                                 if not is_flac:
                                     ydl_opts_dl['postprocessors'][0]['preferredquality'] = '320'
 
@@ -359,17 +364,20 @@ if st.session_state.search_results:
                                                 "data": f.read(),
                                                 "filename": f"{video.get('title', 'track')}{final_ext}"
                                             }
-                            except Exception as e:
-                                st.error("⚠️ YouTube blocked cloud download. Try SoundCloud or run locally.")
+                            except Exception as ex:
+                                if platform == 'YouTube':
+                                    st.error("⚠️ YouTube blocked cloud download. Try SoundCloud or run locally.")
+                                else:
+                                    st.error(f"⚠️ Download failed: {str(ex)}")
 
             if i in st.session_state.download_ready:
                 item = st.session_state.download_ready[i]
                 st.download_button(
-                    label=f"💾 Save '{item['filename']}' to PC",
+                    label=f"💾 Save '{item['filename']}'",
                     data=item['data'],
                     file_name=item['filename'],
                     mime="audio/flac" if item['filename'].endswith('.flac') else "audio/mpeg",
-                    key=f"save_file_{i}"
+                    key=f"direct_save_{i}"
                 )
                                 
             if st.session_state.active_preview == i and st.session_state.preview_url:
