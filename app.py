@@ -7,11 +7,11 @@ st.set_page_config(page_title="Music Searcher", page_icon="🎧", layout="wide")
 
 st.markdown("""
 <style>
-    /* Streamlit 기본 헤더, 툴바, 푸터, 우측 하단 배지 완전히 숨기기 */
+    /* Streamlit 기본 헤더, 툴바, 푸터, 우측 하단 관리자 배지 완벽 차단 */
     [data-testid="stHeader"] { display: none !important; }
     [data-testid="stToolbar"] { display: none !important; }
     footer { display: none !important; }
-    div.viewerBadge_container__1QSob { display: none !important; }
+    [class*="viewerBadge"] { display: none !important; visibility: hidden !important; }
     [data-testid="stStatusWidget"] { display: none !important; }
 
     .stApp { 
@@ -20,7 +20,6 @@ st.markdown("""
         padding-top: 2rem;
     }
     
-    /* 엔터 안내 문구 및 팝업 꼬리표 완전 제거 */
     div[data-testid="InputInstructions"],
     div[data-testid="InputInstructions"] * {
         display: none !important;
@@ -28,7 +27,6 @@ st.markdown("""
         height: 0 !important;
     }
     
-    /* 검색 폼 컨테이너 */
     div[data-testid="stForm"] {
         background-color: #121217 !important;
         border: 2px solid #17C8F0 !important;
