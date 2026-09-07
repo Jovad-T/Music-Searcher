@@ -2,6 +2,7 @@ import streamlit as st
 import yt_dlp
 import os
 import tempfile
+import base64
 
 st.set_page_config(page_title="Music Searcher", page_icon="🎧", layout="wide")
 
@@ -118,22 +119,6 @@ st.markdown("""
         background-color: #17C8F0 !important;
         color: #0A0A0C !important;
         border-color: #17C8F0 !important;
-    }
-
-    div[data-testid="stDownloadButton"] button {
-        background-color: #17C8F0 !important;
-        color: #0A0A0C !important;
-        border: none !important;
-        border-radius: 8px !important;
-        font-weight: 800 !important;
-        width: 100% !important;
-        height: 40px !important;
-        transition: all 0.2s ease;
-    }
-    div[data-testid="stDownloadButton"] button:hover {
-        background-color: #38bdf8 !important;
-        color: #0A0A0C !important;
-        box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
     }
 
     .format-badge {
@@ -360,9 +345,11 @@ if st.session_state.search_results:
                                     
                                     if os.path.exists(audio_path):
                                         with open(audio_path, "rb") as f:
+                                            file_bytes = f.read()
+                                            filename = f"{video.get('title', 'track')}{final_ext}"
                                             st.session_state.download_ready[i] = {
-                                                "data": f.read(),
-                                                "filename": f"{video.get('title', 'track')}{final_ext}"
+                                                "data": file_bytes,
+                                                "filename": filename
                                             }
                             except Exception as ex:
                                 if platform == 'YouTube':
@@ -372,13 +359,25 @@ if st.session_state.search_results:
 
             if i in st.session_state.download_ready:
                 item = st.session_state.download_ready[i]
-                st.download_button(
-                    label=f"💾 Save '{item['filename']}'",
-                    data=item['data'],
-                    file_name=item['filename'],
-                    mime="audio/flac" if item['filename'].endswith('.flac') else "audio/mpeg",
-                    key=f"direct_save_{i}"
-                )
+                b64_data = base64.b64encode(item['data']).decode()
+                mime_type = "audio/flac" if item['filename'].endswith('.flac') else "audio/mpeg"
+                
+                html_download_btn = f"""
+                <a href="data:{mime_type};base64,{b64_data}" download="{item['filename']}" style="
+                    background-color: #17C8F0;
+                    color: #0A0A0C;
+                    padding: 8px 16px;
+                    border-radius: 8px;
+                    text-decoration: none;
+                    font-weight: 800;
+                    display: block;
+                    text-align: center;
+                    box-shadow: 0 0 10px rgba(23, 200, 240, 0.3);
+                    margin-top: 6px;
+                    font-size: 14px;
+                ">💾 Save '{item['filename']}'</a>
+                """
+                st.markdown(html_download_btn, unsafe_allow_html=True)
                                 
             if st.session_state.active_preview == i and st.session_state.preview_url:
                 st.audio(st.session_state.preview_url, autoplay=True)
