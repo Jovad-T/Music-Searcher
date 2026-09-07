@@ -173,6 +173,7 @@ if submit_button:
             ydl_opts = {
                 'extract_flat': 'in_playlist',
                 'quiet': True,
+                'geo_bypass': True,
                 'extractor_args': {'youtube': {'player_client': ['android', 'mweb']}}
             }
             combined_entries = []
@@ -288,6 +289,7 @@ if st.session_state.search_results:
                                 ydl_stream_opts = {
                                     'format': 'bestaudio',
                                     'quiet': True,
+                                    'geo_bypass': True,
                                     'extractor_args': {'youtube': {'player_client': ['android', 'mweb']}}
                                 }
                                 with yt_dlp.YoutubeDL(ydl_stream_opts) as ydl_s:
@@ -312,6 +314,7 @@ if st.session_state.search_results:
                                         'preferredcodec': target_codec,
                                     }],
                                     'quiet': True,
+                                    'geo_bypass': True,
                                     'extractor_args': {'youtube': {'player_client': ['android', 'mweb']}}
                                 }
                                 if not is_flac:
