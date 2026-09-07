@@ -7,10 +7,22 @@ st.set_page_config(page_title="Music Searcher", page_icon="🎧", layout="wide")
 
 st.markdown("""
 <style>
+    /* Streamlit 상단 기본 헤더, 툴바, 푸터 완전히 숨기기 */
+    [data-testid="stHeader"] {
+        display: none !important;
+    }
+    [data-testid="stToolbar"] {
+        display: none !important;
+    }
+    footer {
+        display: none !important;
+    }
+
     /* Obsidian Wave 디자인 시스템 컬러 반영 */
     .stApp { 
         background-color: #0A0A0C; 
         color: #f1f5f9;
+        padding-top: 2rem;
     }
     
     /* "Press Enter to submit form" 안내 문구 숨기기 */
