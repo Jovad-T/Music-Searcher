@@ -313,6 +313,7 @@ if st.session_state.search_results:
                                     }],
                                     'quiet': True,
                                     'geo_bypass': True,
+                                    'nocheckcertificate': True,
                                     'extractor_args': {'youtube': {'player_client': ['ios', 'android', 'web']}}
                                 }
                                 if not is_flac:
