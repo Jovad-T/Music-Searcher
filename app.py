@@ -22,7 +22,7 @@ st.markdown("""
     
     div[data-testid="InputInstructions"] { display: none !important; }
     
-    /* 폼 전체를 하나의 통합된 네온 검색바 컨테이너로 디자인 */
+    /* 통합된 네온 검색바 컨테이너 디자인 */
     div[data-testid="stForm"] {
         background-color: #121217 !important;
         border: 2px solid #17C8F0 !important;
@@ -37,7 +37,6 @@ st.markdown("""
         box-shadow: 0 0 20px rgba(56, 189, 248, 0.5) !important;
     }
 
-    /* 내부 수직 블록을 가로(Row) 정렬로 변환하여 검색창과 버튼을 나란히 배치 */
     div[data-testid="stForm"] > div[data-testid="stVerticalBlock"] {
         width: 100% !important;
         display: flex !important;
@@ -48,7 +47,6 @@ st.markdown("""
         padding: 0 !important;
     }
 
-    /* 텍스트 입력창 스타일 (테두리 및 배경 제거 후 컨테이너와 일체화) */
     .stTextInput {
         flex-grow: 1 !important;
         margin: 0 !important;
@@ -66,7 +64,6 @@ st.markdown("""
     }
     .stTextInput input::placeholder { color: #94a3b8 !important; }
 
-    /* 폼 제출 버튼 스타일 (검색창 내부 오른쪽 끝에 안착) */
     .stFormSubmitButton {
         margin: 0 !important;
         width: auto !important;
@@ -139,7 +136,6 @@ if 'download_ready' not in st.session_state:
 if 'active_format' not in st.session_state:
     st.session_state.active_format = "MP3"
 
-# 통합된 검색바 폼
 with st.form(key='search_form'):
     user_input = st.text_input("Search", label_visibility="collapsed", value=st.session_state.search_query, placeholder="Search for songs, artists...")
     submit_button = st.form_submit_button(label="Search")
@@ -150,7 +146,11 @@ if submit_button:
         st.session_state.page = 1
         st.session_state.download_ready = {}
         with st.spinner("Searching tracks... Please wait!"):
-            ydl_opts = {'extract_flat': 'in_playlist', 'quiet': True}
+            ydl_opts = {
+                'extract_flat': 'in_playlist',
+                'quiet': True,
+                'extractor_args': {'youtube': {'player_client': ['android', 'mweb']}}
+            }
             combined_entries = []
             
             try:
@@ -261,7 +261,11 @@ if st.session_state.search_results:
                     if st.button("▶ Play", key=f"preview_{i}", help="Instant Preview", use_container_width=True):
                         with st.spinner("Loading stream..."):
                             try:
-                                ydl_stream_opts = {'format': 'bestaudio', 'quiet': True}
+                                ydl_stream_opts = {
+                                    'format': 'bestaudio',
+                                    'quiet': True,
+                                    'extractor_args': {'youtube': {'player_client': ['android', 'mweb']}}
+                                }
                                 with yt_dlp.YoutubeDL(ydl_stream_opts) as ydl_s:
                                     info_s = ydl_s.extract_info(video['url'], download=False)
                                     st.session_state.active_preview = i
@@ -283,7 +287,8 @@ if st.session_state.search_results:
                                         'key': 'FFmpegExtractAudio',
                                         'preferredcodec': target_codec,
                                     }],
-                                    'quiet': True
+                                    'quiet': True,
+                                    'extractor_args': {'youtube': {'player_client': ['android', 'mweb']}}
                                 }
                                 if not is_flac:
                                     ydl_opts_dl['postprocessors'][0]['preferredquality'] = '320'
