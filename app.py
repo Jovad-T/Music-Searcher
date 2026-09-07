@@ -27,6 +27,7 @@ st.markdown("""
         box-shadow: 0 0 10px rgba(23, 200, 240, 0.3);
     }
     
+    /* 일반 버튼 스타일 */
     .stButton button {
         background-color: #121217 !important;
         color: #ffffff !important;
@@ -39,6 +40,20 @@ st.markdown("""
         background-color: #17C8F0 !important;
         color: #0A0A0C !important;
         border-color: #17C8F0 !important;
+    }
+
+    /* 폼 제출 버튼 (Search now!) 가시성 완벽 확보 */
+    .stFormSubmitButton button {
+        background-color: #17C8F0 !important;
+        color: #0A0A0C !important;
+        border: none !important;
+        border-radius: 8px !important;
+        font-weight: 800 !important;
+        width: 100%;
+    }
+    .stFormSubmitButton button:hover {
+        background-color: #38bdf8 !important;
+        color: #0A0A0C !important;
     }
 
     .mp3-badge {
