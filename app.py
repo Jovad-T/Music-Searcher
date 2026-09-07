@@ -51,7 +51,6 @@ st.markdown("""
         padding: 0 !important;
     }
 
-    /* Streamlit 내부 인풋 래퍼와 입력창 배경을 확실한 다크톤으로 고정 */
     .stTextInput {
         flex-grow: 1 !important;
         margin: 0 !important;
@@ -79,7 +78,6 @@ st.markdown("""
     }
     .stTextInput input::placeholder { color: #64748b !important; }
 
-    /* Search 버튼 스타일 */
     .stFormSubmitButton {
         margin: 0 !important;
         width: auto !important;
@@ -174,7 +172,7 @@ if submit_button:
                 'extract_flat': 'in_playlist',
                 'quiet': True,
                 'geo_bypass': True,
-                'extractor_args': {'youtube': {'player_client': ['android', 'mweb']}}
+                'extractor_args': {'youtube': {'player_client': ['ios', 'android', 'web']}}
             }
             combined_entries = []
             
@@ -290,14 +288,14 @@ if st.session_state.search_results:
                                     'format': 'bestaudio',
                                     'quiet': True,
                                     'geo_bypass': True,
-                                    'extractor_args': {'youtube': {'player_client': ['android', 'mweb']}}
+                                    'extractor_args': {'youtube': {'player_client': ['ios', 'android', 'web']}}
                                 }
                                 with yt_dlp.YoutubeDL(ydl_stream_opts) as ydl_s:
                                     info_s = ydl_s.extract_info(video['url'], download=False)
                                     st.session_state.active_preview = i
                                     st.session_state.preview_url = info_s.get('url')
                             except Exception as e:
-                                st.error(f"Failed: {e}")
+                                st.warning("Preview unavailable for this track.")
                 with b2:
                     is_flac = st.session_state.active_format == "FLAC"
                     dl_label = "⬇ FLAC" if is_flac else "⬇ Download"
@@ -315,7 +313,7 @@ if st.session_state.search_results:
                                     }],
                                     'quiet': True,
                                     'geo_bypass': True,
-                                    'extractor_args': {'youtube': {'player_client': ['android', 'mweb']}}
+                                    'extractor_args': {'youtube': {'player_client': ['ios', 'android', 'web']}}
                                 }
                                 if not is_flac:
                                     ydl_opts_dl['postprocessors'][0]['preferredquality'] = '320'
@@ -334,7 +332,7 @@ if st.session_state.search_results:
                                                 "filename": f"{video.get('title', 'track')}{final_ext}"
                                             }
                             except Exception as e:
-                                st.error(f"Failed: {e}")
+                                st.warning("This track is restricted or unavailable on YouTube. Please try another search result.")
 
             if i in st.session_state.download_ready:
                 item = st.session_state.download_ready[i]
