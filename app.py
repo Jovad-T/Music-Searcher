@@ -144,7 +144,7 @@ st.markdown("""
 
 <script>
     const removeManageApp = () => {
-        // Remove Streamlit Cloud 'Manage app' badge and floating widgets completely
+        // 우측 하단 'Manage app' 배지 및 플로팅 컨테이너 강제 제거
         const allElements = document.getElementsByTagName('*');
         for (let el of allElements) {
             if (el.childNodes.length === 1 && el.childNodes[0].nodeType === 3) {
@@ -157,7 +157,7 @@ st.markdown("""
         const badges = document.querySelectorAll('[class*="viewerBadge"], [data-testid="stStatusWidget"]');
         badges.forEach(b => b.remove());
     };
-    setInterval(removeManageApp, 150);
+    setInterval(removeManageApp, 100);
 </script>
 """, unsafe_allow_html=True)
 
@@ -175,6 +175,8 @@ if 'active_format' not in st.session_state:
     st.session_state.active_format = "MP3"
 if 'download_queue' not in st.session_state:
     st.session_state.download_queue = []
+if 'download_status' not in st.session_state:
+    st.session_state.download_status = {}
 
 with st.form(key='search_form'):
     user_input = st.text_input("Search", label_visibility="collapsed", value=st.session_state.search_query, placeholder="Search for songs, artists...")
@@ -185,6 +187,7 @@ if submit_button:
         st.session_state.search_query = user_input
         st.session_state.page = 1
         st.session_state.download_queue = []
+        st.session_state.download_status = {}
         with st.spinner("Searching tracks... Please wait!"):
             ydl_opts = {
                 'extract_flat': 'in_playlist',
@@ -237,6 +240,7 @@ if st.session_state.search_results:
             if not is_mp3_active:
                 st.session_state.active_format = "MP3"
                 st.session_state.download_queue = []
+                st.session_state.download_status = {}
                 st.rerun()
     with f_col2:
         is_flac_active = st.session_state.active_format == "FLAC"
@@ -245,6 +249,7 @@ if st.session_state.search_results:
             if not is_flac_active:
                 st.session_state.active_format = "FLAC"
                 st.session_state.download_queue = []
+                st.session_state.download_status = {}
                 st.rerun()
 
     total_tracks = len(st.session_state.search_results)
@@ -317,6 +322,7 @@ if st.session_state.search_results:
                 with b2:
                     is_flac = st.session_state.active_format == "FLAC"
                     dl_label = "⬇ Download"
+                    
                     if st.button(dl_label, key=f"dl_btn_{i}", help="Direct Download", use_container_width=True):
                         target_codec = 'flac' if is_flac else 'mp3'
                         if i not in st.session_state.download_queue:
@@ -324,59 +330,64 @@ if st.session_state.search_results:
                         queue_total = len(st.session_state.download_queue)
                         queue_current = st.session_state.download_queue.index(i) + 1
                         
-                        with st.spinner(f"[{queue_current} of {queue_total}] Converting to {target_codec.upper()}..."):
-                            try:
-                                temp_dir = tempfile.gettempdir()
-                                ydl_opts_dl = {
-                                    'format': 'bestaudio/best',
-                                    'outtmpl': os.path.join(temp_dir, '%(id)s.%(ext)s'),
-                                    'postprocessors': [{
-                                        'key': 'FFmpegExtractAudio',
-                                        'preferredcodec': target_codec,
-                                    }],
-                                    'quiet': True,
-                                    'geo_bypass': True,
-                                    'nocheckcertificate': True,
-                                }
-                                if platform == 'YouTube':
-                                    ydl_opts_dl['extractor_args'] = {'youtube': {'player_client': ['ios', 'android', 'web']}}
-                                if not is_flac:
-                                    ydl_opts_dl['postprocessors'][0]['preferredquality'] = '320'
+                        st.session_state.download_status[i] = f"[{queue_current} of {queue_total}] Converting..."
+                        
+                        try:
+                            temp_dir = tempfile.gettempdir()
+                            ydl_opts_dl = {
+                                'format': 'bestaudio/best',
+                                'outtmpl': os.path.join(temp_dir, '%(id)s.%(ext)s'),
+                                'postprocessors': [{
+                                    'key': 'FFmpegExtractAudio',
+                                    'preferredcodec': target_codec,
+                                }],
+                                'quiet': True,
+                                'geo_bypass': True,
+                                'nocheckcertificate': True,
+                            }
+                            if platform == 'YouTube':
+                                ydl_opts_dl['extractor_args'] = {'youtube': {'player_client': ['ios', 'android', 'web']}}
+                            if not is_flac:
+                                ydl_opts_dl['postprocessors'][0]['preferredquality'] = '320'
 
-                                with yt_dlp.YoutubeDL(ydl_opts_dl) as ydl_dl:
-                                    info_dict = ydl_dl.extract_info(video['url'], download=True)
-                                    file_path = ydl_dl.prepare_filename(info_dict)
-                                    base, _ = os.path.splitext(file_path)
-                                    final_ext = ".flac" if is_flac else ".mp3"
-                                    audio_path = base + final_ext
-                                    
-                                    if os.path.exists(audio_path):
-                                        with open(audio_path, "rb") as f:
-                                            file_bytes = f.read()
-                                            filename = f"{video.get('title', 'track')}{final_ext}"
-                                            b64_data = base64.b64encode(file_bytes).decode()
-                                            mime_type = "audio/flac" if final_ext == '.flac' else "audio/mpeg"
-                                            
-                                            # 자바스크립트로 숨김 링크를 자동 클릭하여 변환 완료 즉시 PC로 다운로드 시작
-                                            auto_download_html = f"""
-                                            <a id="download_link_{i}" href="data:{mime_type};base64,{b64_data}" download="{filename}" style="display:none;"></a>
-                                            <script>
-                                                setTimeout(() => {{
-                                                    const link = document.getElementById("download_link_{i}");
-                                                    if (link) link.click();
-                                                }}, 100);
-                                            </script>
-                                            <div style="color: #17C8F0; font-size: 13px; font-weight: 700; margin-top: 6px;">
-                                                ✅ Download started for '{filename}'
-                                            </div>
-                                            """
-                                            st.markdown(auto_download_html, unsafe_allow_html=True)
-                            except Exception as ex:
-                                if platform == 'YouTube':
-                                    st.error("⚠️ YouTube blocked cloud download. Try SoundCloud or run locally.")
-                                else:
-                                    st.error(f"⚠️ Download failed: {str(ex)}")
+                            with yt_dlp.YoutubeDL(ydl_opts_dl) as ydl_dl:
+                                info_dict = ydl_dl.extract_info(video['url'], download=True)
+                                file_path = ydl_dl.prepare_filename(info_dict)
+                                base, _ = os.path.splitext(file_path)
+                                final_ext = ".flac" if is_flac else ".mp3"
+                                audio_path = base + final_ext
+                                
+                                if os.path.exists(audio_path):
+                                    with open(audio_path, "rb") as f:
+                                        file_bytes = f.read()
+                                        filename = f"{video.get('title', 'track')}{final_ext}"
+                                        b64_data = base64.b64encode(file_bytes).decode()
+                                        mime_type = "audio/flac" if final_ext == '.flac' else "audio/mpeg"
+                                        
+                                        st.session_state.download_status[i] = f"✅ Completed"
+                                        
+                                        # 즉시 자동 다운로드 트리거용 숨김 JS/HTML
+                                        auto_download_html = f"""
+                                        <a id="download_link_{i}" href="data:{mime_type};base64,{b64_data}" download="{filename}" style="display:none;"></a>
+                                        <script>
+                                            setTimeout(() => {{
+                                                const link = document.getElementById("download_link_{i}");
+                                                if (link) link.click();
+                                            }}, 100);
+                                        </script>
+                                        """
+                                        st.markdown(auto_download_html, unsafe_allow_html=True)
+                        except Exception as ex:
+                            if platform == 'YouTube':
+                                st.session_state.download_status[i] = "⚠️ YouTube blocked."
+                            else:
+                                st.session_state.download_status[i] = "⚠️ Failed"
 
+            if i in st.session_state.download_status:
+                status_text = st.session_state.download_status[i]
+                color_code = "#17C8F0" if "Completed" in status_text else ("#38bdf8" if "Converting" in status_text else "#ef4444")
+                st.markdown(f"<div style='color: {color_code}; font-size: 12px; font-weight: 700; margin-top: 4px; text-align: right;'>{status_text}</div>", unsafe_allow_html=True)
+                                
             if st.session_state.active_preview == i and st.session_state.preview_url:
                 st.audio(st.session_state.preview_url, autoplay=True)
 
