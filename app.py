@@ -22,14 +22,23 @@ st.markdown("""
     
     div[data-testid="InputInstructions"] { display: none !important; }
     
-    /* 검색창을 더욱 눈에 띄고 시크하게 강조 (일렉트릭 시안 테두리 및 네온 글로우) */
+    /* 폼 컨테이너를 상대 좌표 기준으로 설정 */
+    div[data-testid="stForm"] {
+        position: relative !important;
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+    }
+
+    /* 검색창 스타일 (오른쪽에 버튼 들어갈 공간 확보를 위해 padding-right 추가) */
     .stTextInput input {
         background-color: #121217 !important;
         color: #ffffff !important;
         border: 2px solid #17C8F0 !important;
         border-radius: 10px !important;
         padding-left: 42px !important;
-        height: 48px !important;
+        padding-right: 95px !important;
+        height: 50px !important;
         box-shadow: 0 0 15px rgba(23, 200, 240, 0.3) !important;
         background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="%2317C8F0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>') !important;
         background-repeat: no-repeat !important;
@@ -41,21 +50,28 @@ st.markdown("""
         box-shadow: 0 0 20px rgba(56, 189, 248, 0.5) !important;
     }
     
-    /* 검색 버튼 스타일 (검색창과 완벽히 일체화) */
+    /* Search 버튼을 검색창 내부 우측 끝에 절대 위치로 배치 */
+    .stFormSubmitButton {
+        position: absolute !important;
+        right: 8px !important;
+        top: 8px !important;
+        width: auto !important;
+    }
     .stFormSubmitButton button {
         background-color: #17C8F0 !important;
         color: #0A0A0C !important;
         border: none !important;
-        border-radius: 10px !important;
+        border-radius: 8px !important;
         font-weight: 800 !important;
-        height: 48px !important;
-        width: 100%;
+        height: 34px !important;
+        padding: 0 16px !important;
+        font-size: 13px !important;
         transition: all 0.2s ease;
     }
     .stFormSubmitButton button:hover {
         background-color: #38bdf8 !important;
         color: #0A0A0C !important;
-        box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+        box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
     }
 
     .stButton button {
@@ -109,13 +125,10 @@ if 'download_ready' not in st.session_state:
 if 'active_format' not in st.session_state:
     st.session_state.active_format = "MP3"
 
-# 검색창과 검색 버튼을 한 행(Inline)에 배치
+# 검색창 내부 우측 끝에 버튼이 안착되도록 폼 구성
 with st.form(key='search_form'):
-    col_input, col_btn = st.columns([5, 1])
-    with col_input:
-        user_input = st.text_input("Search", label_visibility="collapsed", value=st.session_state.search_query, placeholder="Search for songs, artists...")
-    with col_btn:
-        submit_button = st.form_submit_button(label="Search")
+    user_input = st.text_input("Search", label_visibility="collapsed", value=st.session_state.search_query, placeholder="Search for songs, artists...")
+    submit_button = st.form_submit_button(label="Search")
 
 if submit_button:
     if user_input:
