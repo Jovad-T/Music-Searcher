@@ -7,7 +7,7 @@ st.set_page_config(page_title="Music Searcher", page_icon="🎧", layout="wide")
 
 st.markdown("""
 <style>
-    /* Streamlit 기본 헤더, 툴바, 푸터, 우측 하단 관리자 배지 완벽 차단 */
+    /* Streamlit 기본 헤더, 툴바, 푸터, 관리자 배지 완벽 차단 */
     [data-testid="stHeader"] { display: none !important; }
     [data-testid="stToolbar"] { display: none !important; }
     footer { display: none !important; }
@@ -120,7 +120,6 @@ st.markdown("""
         border-color: #17C8F0 !important;
     }
 
-    /* 다운로드 완료 버튼 가독성 개선 (시안 일체형 디자인) */
     div[data-testid="stDownloadButton"] button {
         background-color: #17C8F0 !important;
         color: #0A0A0C !important;
@@ -157,6 +156,18 @@ st.markdown("""
         padding: 10px;
     }
 </style>
+
+<!-- 자바스크립트로 Manage app 배지 요소를 강제 제거 -->
+<script>
+    const removeBadge = () => {
+        const badges = document.querySelectorAll('[class*="viewerBadge"], iframe');
+        badges.forEach(el => {
+            if (el.src && el.src.includes('streamlit')) return;
+            el.remove();
+        });
+    };
+    setInterval(removeBadge, 500);
+</script>
 """, unsafe_allow_html=True)
 
 if 'search_query' not in st.session_state:
