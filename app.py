@@ -11,8 +11,9 @@ st.markdown("""
     [data-testid="stHeader"] { display: none !important; }
     [data-testid="stToolbar"] { display: none !important; }
     footer { display: none !important; }
-    [class*="viewerBadge"] { display: none !important; visibility: hidden !important; }
+    [class*="viewerBadge"] { display: none !important; visibility: hidden !important; opacity: 0 !important; pointer-events: none !important; }
     [data-testid="stStatusWidget"] { display: none !important; }
+    [data-testid="stDecoration"] { display: none !important; }
 
     .stApp { 
         background-color: #0A0A0C !important; 
@@ -293,7 +294,7 @@ if st.session_state.search_results:
                                     st.session_state.active_preview = i
                                     st.session_state.preview_url = info_s.get('url')
                             except Exception as e:
-                                st.warning("Preview unavailable for this track.")
+                                st.warning("Preview unavailable.")
                 with b2:
                     is_flac = st.session_state.active_format == "FLAC"
                     dl_label = "⬇ FLAC" if is_flac else "⬇ Download"
@@ -331,7 +332,7 @@ if st.session_state.search_results:
                                                 "filename": f"{video.get('title', 'track')}{final_ext}"
                                             }
                             except Exception as e:
-                                st.warning("This track is restricted or unavailable on YouTube. Please try another search result.")
+                                st.error("⚠️ YouTube blocked cloud download. Try SoundCloud or run locally.")
 
             if i in st.session_state.download_ready:
                 item = st.session_state.download_ready[i]
