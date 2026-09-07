@@ -22,39 +22,53 @@ st.markdown("""
     
     div[data-testid="InputInstructions"] { display: none !important; }
     
-    /* 폼 컨테이너를 상대 좌표 기준으로 설정 */
+    /* 폼 전체를 하나의 통합된 네온 검색바 컨테이너로 디자인 */
     div[data-testid="stForm"] {
-        position: relative !important;
-        background: transparent !important;
-        border: none !important;
-        padding: 0 !important;
-    }
-
-    /* 검색창 스타일 (오른쪽에 버튼 들어갈 공간 확보를 위해 padding-right 추가) */
-    .stTextInput input {
         background-color: #121217 !important;
-        color: #ffffff !important;
         border: 2px solid #17C8F0 !important;
-        border-radius: 10px !important;
-        padding-left: 42px !important;
-        padding-right: 95px !important;
-        height: 50px !important;
+        border-radius: 12px !important;
+        padding: 6px 8px 6px 14px !important;
+        display: flex !important;
+        align-items: center !important;
         box-shadow: 0 0 15px rgba(23, 200, 240, 0.3) !important;
-        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="%2317C8F0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>') !important;
-        background-repeat: no-repeat !important;
-        background-position: 14px center !important;
     }
-    .stTextInput input::placeholder { color: #94a3b8 !important; }
-    .stTextInput input:focus {
+    div[data-testid="stForm"]:focus-within {
         border-color: #38bdf8 !important;
         box-shadow: 0 0 20px rgba(56, 189, 248, 0.5) !important;
     }
-    
-    /* Search 버튼을 검색창 내부 우측 끝에 절대 위치로 배치 */
+
+    /* 내부 수직 블록을 가로(Row) 정렬로 변환하여 검색창과 버튼을 나란히 배치 */
+    div[data-testid="stForm"] > div[data-testid="stVerticalBlock"] {
+        width: 100% !important;
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 10px !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* 텍스트 입력창 스타일 (테두리 및 배경 제거 후 컨테이너와 일체화) */
+    .stTextInput {
+        flex-grow: 1 !important;
+        margin: 0 !important;
+    }
+    .stTextInput input {
+        background-color: transparent !important;
+        color: #ffffff !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding-left: 36px !important;
+        height: 42px !important;
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="%2317C8F0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>') !important;
+        background-repeat: no-repeat !important;
+        background-position: 8px center !important;
+    }
+    .stTextInput input::placeholder { color: #94a3b8 !important; }
+
+    /* 폼 제출 버튼 스타일 (검색창 내부 오른쪽 끝에 안착) */
     .stFormSubmitButton {
-        position: absolute !important;
-        right: 8px !important;
-        top: 8px !important;
+        margin: 0 !important;
         width: auto !important;
     }
     .stFormSubmitButton button {
@@ -63,9 +77,9 @@ st.markdown("""
         border: none !important;
         border-radius: 8px !important;
         font-weight: 800 !important;
-        height: 34px !important;
-        padding: 0 16px !important;
-        font-size: 13px !important;
+        height: 38px !important;
+        padding: 0 20px !important;
+        font-size: 14px !important;
         transition: all 0.2s ease;
     }
     .stFormSubmitButton button:hover {
@@ -125,7 +139,7 @@ if 'download_ready' not in st.session_state:
 if 'active_format' not in st.session_state:
     st.session_state.active_format = "MP3"
 
-# 검색창 내부 우측 끝에 버튼이 안착되도록 폼 구성
+# 통합된 검색바 폼
 with st.form(key='search_form'):
     user_input = st.text_input("Search", label_visibility="collapsed", value=st.session_state.search_query, placeholder="Search for songs, artists...")
     submit_button = st.form_submit_button(label="Search")
