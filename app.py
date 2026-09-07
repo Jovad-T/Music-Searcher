@@ -7,9 +7,12 @@ st.set_page_config(page_title="Music Searcher", page_icon="🎧", layout="wide")
 
 st.markdown("""
 <style>
+    /* Streamlit 기본 헤더, 툴바, 푸터, 우측 하단 Manage app 배지 완전히 숨기기 */
     [data-testid="stHeader"] { display: none !important; }
     [data-testid="stToolbar"] { display: none !important; }
     footer { display: none !important; }
+    div.viewerBadge_container__1QSob { display: none !important; }
+    [data-testid="stStatusWidget"] { display: none !important; }
 
     .stApp { 
         background-color: #0A0A0C; 
@@ -148,7 +151,6 @@ if submit_button:
 if st.session_state.search_results:
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # 깔끔하게 다듬어진 MP3 / FLAC 필터 탭
     f_col1, f_col2, f_col_rest = st.columns([1, 1, 8])
     with f_col1:
         is_mp3_active = st.session_state.active_format == "MP3"
