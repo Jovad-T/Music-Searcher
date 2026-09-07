@@ -7,6 +7,7 @@ st.set_page_config(page_title="Music Searcher", page_icon="🎧", layout="wide")
 
 st.markdown("""
 <style>
+    /* Streamlit 기본 헤더, 툴바, 푸터, 우측 하단 배지 완전히 숨기기 */
     [data-testid="stHeader"] { display: none !important; }
     [data-testid="stToolbar"] { display: none !important; }
     footer { display: none !important; }
@@ -21,13 +22,14 @@ st.markdown("""
     
     div[data-testid="InputInstructions"] { display: none !important; }
     
-    /* 검색창을 훨씬 눈에 띄고 시크하게 강조 (일렉트릭 시안 테두리 및 은은한 네온 글로우 효과) */
+    /* 검색창을 더욱 눈에 띄고 시크하게 강조 (일렉트릭 시안 테두리 및 네온 글로우) */
     .stTextInput input {
         background-color: #121217 !important;
         color: #ffffff !important;
         border: 2px solid #17C8F0 !important;
         border-radius: 10px !important;
         padding-left: 42px !important;
+        height: 48px !important;
         box-shadow: 0 0 15px rgba(23, 200, 240, 0.3) !important;
         background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="%2317C8F0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>') !important;
         background-repeat: no-repeat !important;
@@ -39,6 +41,23 @@ st.markdown("""
         box-shadow: 0 0 20px rgba(56, 189, 248, 0.5) !important;
     }
     
+    /* 검색 버튼 스타일 (검색창과 완벽히 일체화) */
+    .stFormSubmitButton button {
+        background-color: #17C8F0 !important;
+        color: #0A0A0C !important;
+        border: none !important;
+        border-radius: 10px !important;
+        font-weight: 800 !important;
+        height: 48px !important;
+        width: 100%;
+        transition: all 0.2s ease;
+    }
+    .stFormSubmitButton button:hover {
+        background-color: #38bdf8 !important;
+        color: #0A0A0C !important;
+        box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+    }
+
     .stButton button {
         background-color: #121217 !important;
         color: #ffffff !important;
@@ -51,19 +70,6 @@ st.markdown("""
         background-color: #17C8F0 !important;
         color: #0A0A0C !important;
         border-color: #17C8F0 !important;
-    }
-
-    .stFormSubmitButton button {
-        background-color: #17C8F0 !important;
-        color: #0A0A0C !important;
-        border: none !important;
-        border-radius: 8px !important;
-        font-weight: 800 !important;
-        width: 100%;
-    }
-    .stFormSubmitButton button:hover {
-        background-color: #38bdf8 !important;
-        color: #0A0A0C !important;
     }
 
     .format-badge {
@@ -103,9 +109,13 @@ if 'download_ready' not in st.session_state:
 if 'active_format' not in st.session_state:
     st.session_state.active_format = "MP3"
 
+# 검색창과 검색 버튼을 한 행(Inline)에 배치
 with st.form(key='search_form'):
-    user_input = st.text_input("Search", label_visibility="collapsed", value=st.session_state.search_query, placeholder="Search for songs, artists...")
-    submit_button = st.form_submit_button(label="Search now!")
+    col_input, col_btn = st.columns([5, 1])
+    with col_input:
+        user_input = st.text_input("Search", label_visibility="collapsed", value=st.session_state.search_query, placeholder="Search for songs, artists...")
+    with col_btn:
+        submit_button = st.form_submit_button(label="Search")
 
 if submit_button:
     if user_input:
