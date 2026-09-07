@@ -347,38 +347,31 @@ if st.session_state.search_results:
                                         with open(audio_path, "rb") as f:
                                             file_bytes = f.read()
                                             filename = f"{video.get('title', 'track')}{final_ext}"
-                                            st.session_state.download_ready[i] = {
-                                                "data": file_bytes,
-                                                "filename": filename
-                                            }
+                                            b64_data = base64.b64encode(file_bytes).decode()
+                                            mime_type = "audio/flac" if final_ext == '.flac' else "audio/mpeg"
+                                            
+                                            html_download_btn = f"""
+                                            <a href="data:{mime_type};base64,{b64_data}" download="{filename}" style="
+                                                background-color: #17C8F0;
+                                                color: #0A0A0C;
+                                                padding: 8px 16px;
+                                                border-radius: 8px;
+                                                text-decoration: none;
+                                                font-weight: 800;
+                                                display: block;
+                                                text-align: center;
+                                                box-shadow: 0 0 10px rgba(23, 200, 240, 0.3);
+                                                margin-top: 6px;
+                                                font-size: 14px;
+                                            ">💾 Save '{filename}'</a>
+                                            """
+                                            st.markdown(html_download_btn, unsafe_allow_html=True)
                             except Exception as ex:
                                 if platform == 'YouTube':
                                     st.error("⚠️ YouTube blocked cloud download. Try SoundCloud or run locally.")
                                 else:
                                     st.error(f"⚠️ Download failed: {str(ex)}")
 
-            if i in st.session_state.download_ready:
-                item = st.session_state.download_ready[i]
-                b64_data = base64.b64encode(item['data']).decode()
-                mime_type = "audio/flac" if item['filename'].endswith('.flac') else "audio/mpeg"
-                
-                html_download_btn = f"""
-                <a href="data:{mime_type};base64,{b64_data}" download="{item['filename']}" style="
-                    background-color: #17C8F0;
-                    color: #0A0A0C;
-                    padding: 8px 16px;
-                    border-radius: 8px;
-                    text-decoration: none;
-                    font-weight: 800;
-                    display: block;
-                    text-align: center;
-                    box-shadow: 0 0 10px rgba(23, 200, 240, 0.3);
-                    margin-top: 6px;
-                    font-size: 14px;
-                ">💾 Save '{item['filename']}'</a>
-                """
-                st.markdown(html_download_btn, unsafe_allow_html=True)
-                                
             if st.session_state.active_preview == i and st.session_state.preview_url:
                 st.audio(st.session_state.preview_url, autoplay=True)
 
