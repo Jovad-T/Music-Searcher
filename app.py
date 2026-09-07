@@ -15,22 +15,26 @@ st.markdown("""
     [data-testid="stStatusWidget"] { display: none !important; }
 
     .stApp { 
-        background-color: #0A0A0C; 
+        background-color: #0A0A0C !important; 
         color: #f1f5f9;
         padding-top: 2rem;
     }
     
-    div[data-testid="InputInstructions"] { display: none !important; }
+    /* 엔터 안내 문구 및 팝업 꼬리표 완전 제거 */
+    div[data-testid="InputInstructions"],
+    div[data-testid="InputInstructions"] * {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+    }
     
-    /* 통합된 네온 검색바 컨테이너 디자인 */
+    /* 검색 폼 (하나의 매끄러운 다크 네온 검색창 컨테이너) */
     div[data-testid="stForm"] {
         background-color: #121217 !important;
         border: 2px solid #17C8F0 !important;
         border-radius: 12px !important;
-        padding: 6px 8px 6px 14px !important;
-        display: flex !important;
-        align-items: center !important;
-        box-shadow: 0 0 15px rgba(23, 200, 240, 0.3) !important;
+        padding: 4px 6px 4px 14px !important;
+        box-shadow: 0 0 15px rgba(23, 200, 240, 0.25) !important;
     }
     div[data-testid="stForm"]:focus-within {
         border-color: #38bdf8 !important;
@@ -42,31 +46,44 @@ st.markdown("""
         display: flex !important;
         flex-direction: row !important;
         align-items: center !important;
-        gap: 10px !important;
+        gap: 12px !important;
         margin: 0 !important;
         padding: 0 !important;
     }
 
+    /* Streamlit 내부 인풋 래퍼의 흰색 배경 및 붉은색 포커스 테두리 강제 제거 */
     .stTextInput {
         flex-grow: 1 !important;
         margin: 0 !important;
+        padding: 0 !important;
+    }
+    .stTextInput div[data-baseweb="base-input"],
+    .stTextInput div[data-baseweb="input"] {
+        background-color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        outline: none !important;
     }
     .stTextInput input {
         background-color: transparent !important;
         color: #ffffff !important;
         border: none !important;
+        outline: none !important;
         box-shadow: none !important;
+        font-size: 15px !important;
+        height: 44px !important;
         padding-left: 36px !important;
-        height: 42px !important;
         background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="%2317C8F0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>') !important;
         background-repeat: no-repeat !important;
-        background-position: 8px center !important;
+        background-position: 4px center !important;
     }
-    .stTextInput input::placeholder { color: #94a3b8 !important; }
+    .stTextInput input::placeholder { color: #64748b !important; }
 
+    /* Search 버튼 텍스트 줄바꿈(Sear / ch) 방지 및 완벽 정렬 */
     .stFormSubmitButton {
         margin: 0 !important;
         width: auto !important;
+        flex-shrink: 0 !important;
     }
     .stFormSubmitButton button {
         background-color: #17C8F0 !important;
@@ -75,14 +92,21 @@ st.markdown("""
         border-radius: 8px !important;
         font-weight: 800 !important;
         height: 38px !important;
-        padding: 0 20px !important;
+        min-width: 84px !important;
+        white-space: nowrap !important;
+        word-break: keep-all !important;
+        padding: 0 18px !important;
         font-size: 14px !important;
-        transition: all 0.2s ease;
+        cursor: pointer !important;
+        transition: all 0.2s ease !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
     }
     .stFormSubmitButton button:hover {
         background-color: #38bdf8 !important;
         color: #0A0A0C !important;
-        box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+        box-shadow: 0 0 10px rgba(56, 189, 248, 0.4) !important;
     }
 
     .stButton button {
