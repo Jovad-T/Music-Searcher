@@ -5,7 +5,6 @@ import tempfile
 
 st.set_page_config(page_title="Music Searcher", page_icon="🎧", layout="wide")
 
-# dajent.co 스타일의 시크한 다크모드 & 미래지향적 디자인 CSS 주입
 st.markdown("""
 <style>
     /* 전체 다크 옵시디언 배경 */
@@ -14,31 +13,33 @@ st.markdown("""
         color: #f1f5f9;
     }
     
-    /* 입력창 및 폼 스타일링 */
+    /* 입력창 스타일링 (글자색 흰색, 배경 어둡게) */
     .stTextInput input {
         background-color: #131824 !important;
         color: #ffffff !important;
-        border: 1px solid #1e293b !important;
+        border: 1px solid #334155 !important;
         border-radius: 8px !important;
+    }
+    .stTextInput input::placeholder {
+        color: #64748b !important;
     }
     .stTextInput input:focus {
         border-color: #38bdf8 !important;
         box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
     }
     
-    /* 버튼 스타일링 */
+    /* 버튼 스타일링 (가시성 확보를 위해 배경과 글자색 명확히 지정) */
     .stButton button {
-        background-color: #131824;
-        color: #f1f5f9;
-        border: 1px solid #334155;
-        border-radius: 8px;
-        font-weight: 600;
-        transition: all 0.2s ease;
+        background-color: #1e293b !important;
+        color: #ffffff !important;
+        border: 1px solid #475569 !important;
+        border-radius: 8px !important;
+        font-weight: 700 !important;
     }
     .stButton button:hover {
-        background-color: #1e293b;
-        border-color: #38bdf8;
-        color: #38bdf8;
+        background-color: #38bdf8 !important;
+        color: #0b0f19 !important;
+        border-color: #38bdf8 !important;
     }
 
     .mp3-badge {
@@ -47,7 +48,6 @@ st.markdown("""
         border: 1px solid #334155;
     }
     
-    /* 메타데이터 디지털 필 스타일 */
     .meta-pill {
         background-color: #131824; color: #cbd5e1; font-size: 13px; 
         padding: 8px 0px; border-radius: 8px; font-weight: 700; text-align: center;
@@ -55,7 +55,6 @@ st.markdown("""
         box-shadow: 0 1px 3px rgba(0,0,0,0.2);
     }
 
-    /* 컨테이너 카드 */
     div[data-testid="stVerticalBlock"] > div[data-testid="stContainer"] {
         background-color: #0e131f;
         border: 1px solid #1e293b;
