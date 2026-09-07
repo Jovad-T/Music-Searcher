@@ -120,6 +120,23 @@ st.markdown("""
         border-color: #17C8F0 !important;
     }
 
+    /* 다운로드 완료 버튼 가독성 개선 (시안 일체형 디자인) */
+    div[data-testid="stDownloadButton"] button {
+        background-color: #17C8F0 !important;
+        color: #0A0A0C !important;
+        border: none !important;
+        border-radius: 8px !important;
+        font-weight: 800 !important;
+        width: 100% !important;
+        height: 42px !important;
+        transition: all 0.2s ease;
+    }
+    div[data-testid="stDownloadButton"] button:hover {
+        background-color: #38bdf8 !important;
+        color: #0A0A0C !important;
+        box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+    }
+
     .format-badge {
         background-color: #121217; color: #17C8F0; font-size: 11px; 
         font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-left: 6px;
