@@ -54,13 +54,12 @@ yt_icon = f'<svg height="15" width="20" viewBox="0 0 24 24" style="fill: {C_DANG
 CLOUD_TEMP_DIR = os.path.join(tempfile.gettempdir(), "music_searcher_temp")
 os.makedirs(CLOUD_TEMP_DIR, exist_ok=True)
 
-# 🔑 다중 사용자 보안 모드: 서버 하드디스크에 개인정보(키/북마크/히스토리)를 저장하지 않고 개별 브라우저 세션에서만 관리
+# 🔑 다중 사용자 보안 모드
 def load_api_keys():
     keys = {
         "gemini": st.session_state.get("saved_gemini_key", ""),
         "groq": st.session_state.get("saved_groq_key", "")
     }
-    # 관리자가 Streamlit Secrets에 기본 키를 넣어둔 경우에만 폴백으로 사용
     try:
         if not keys["gemini"] and "GEMINI_API_KEY" in st.secrets:
             keys["gemini"] = st.secrets["GEMINI_API_KEY"]
@@ -75,16 +74,12 @@ def save_api_keys(gemini, groq):
     st.session_state.saved_groq_key = str(groq).strip()
     return True
 
-def load_ai_history():
-    return st.session_state.get("ai_history", [])
-
+def load_ai_history(): return st.session_state.get("ai_history", [])
 def save_ai_history(history_data):
     st.session_state.ai_history = history_data
     return True
 
-def load_bookmarks():
-    return st.session_state.get("bookmarks", [])
-
+def load_bookmarks(): return st.session_state.get("bookmarks", [])
 def save_bookmarks(bms):
     st.session_state.bookmarks = bms
     return True
@@ -175,7 +170,10 @@ def analyze_track_pro(file_path):
 
 def fetch_tracks(platform, query):
     prefix = "ytsearch10:" if platform == 'YouTube' else "scsearch5:"
-    opts = {'extract_flat': 'in_playlist', 'quiet': True, 'geo_bypass': True, 'nocheckcertificate': True}
+    opts = {
+        'extract_flat': 'in_playlist', 'quiet': True, 'geo_bypass': True, 'nocheckcertificate': True,
+        'extractor_args': {'youtube': {'client': ['android', 'web']}} # 🚨 403 우회 코드
+    }
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
             res = ydl.extract_info(f"{prefix}{query}", download=False)
@@ -238,7 +236,8 @@ def fetch_and_analyze_single_track(full_name, target_dir):
         'quiet': True, 
         'noplaylist': True,
         'nocheckcertificate': True,
-        'geo_bypass': True
+        'geo_bypass': True,
+        'extractor_args': {'youtube': {'client': ['android', 'web']}} # 🚨 403 우회 코드
     }
     
     search_queries = [f"{full_name} audio", f"{full_name} lyrics", full_name]
@@ -355,7 +354,7 @@ def render_inline_search_box(target_id):
                     if st.button("▶ Play", key=f"inl_play_{unique_k}", use_container_width=True):
                         with st.spinner("연결 중..."):
                             try:
-                                ydl_opts = {'format': 'bestaudio/best', 'quiet': True, 'geo_bypass': True}
+                                ydl_opts = {'format': 'bestaudio/best', 'quiet': True, 'geo_bypass': True, 'extractor_args': {'youtube': {'client': ['android', 'web']}}}
                                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                                     info = ydl.extract_info(video['url'], download=False)
                                     st.session_state.inline_preview_target = unique_k
@@ -391,7 +390,8 @@ def render_inline_search_box(target_id):
                                 ydl_dl_opts = {
                                     'format': 'bestaudio/best', 'outtmpl': os.path.join(down_dir, f'inl_{unique_k}_%(title)s.%(ext)s'),
                                     'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': target_codec}],
-                                    'quiet': True, 'geo_bypass': True, 'progress_hooks': [inl_hook]
+                                    'quiet': True, 'geo_bypass': True, 'progress_hooks': [inl_hook],
+                                    'extractor_args': {'youtube': {'client': ['android', 'web']}} # 🚨 403 우회 코드
                                 }
                                 if active_fmt != 'FLAC': ydl_dl_opts['postprocessors'][0]['preferredquality'] = '320'
                                 
@@ -749,7 +749,7 @@ if st.session_state.current_view == "AI":
                 if ref_yt_link:
                     with st.spinner("🔗 YouTube 레퍼런스 영상 분석 중..."):
                         try:
-                            ydl_ref_opts = {'quiet': True, 'skip_download': True}
+                            ydl_ref_opts = {'quiet': True, 'skip_download': True, 'extractor_args': {'youtube': {'client': ['android', 'web']}}}
                             with yt_dlp.YoutubeDL(ydl_ref_opts) as ydl_ref:
                                 r_info = ydl_ref.extract_info(ref_yt_link, download=False)
                                 r_title, r_artist = r_info.get('title', ''), r_info.get('artist') or r_info.get('uploader', '')
@@ -935,7 +935,7 @@ if st.session_state.current_view == "AI":
                             if st.button("▶ Play", key=f"mix_seq_play_{idx}", use_container_width=True):
                                 with st.spinner("미리듣기 연결 중..."):
                                     try:
-                                        with yt_dlp.YoutubeDL({'format': 'bestaudio/best', 'quiet': True, 'geo_bypass': True}) as ydl_s:
+                                        with yt_dlp.YoutubeDL({'format': 'bestaudio/best', 'quiet': True, 'geo_bypass': True, 'extractor_args': {'youtube': {'client': ['android', 'web']}}}) as ydl_s:
                                             res = ydl_s.extract_info(f"ytsearch1:{t['name']}", download=False)
                                             if res.get('entries') and res['entries'][0]:
                                                 st.session_state.ai_active_preview = f"mix_{idx}"
@@ -1000,7 +1000,7 @@ if st.session_state.current_view == "AI":
                     if st.button("▶ Play", key=f"ai_play_{idx}", use_container_width=True):
                         with st.spinner("미리듣기 연결 중..."):
                             try:
-                                with yt_dlp.YoutubeDL({'format': 'bestaudio/best', 'quiet': True, 'geo_bypass': True}) as ydl_s:
+                                with yt_dlp.YoutubeDL({'format': 'bestaudio/best', 'quiet': True, 'geo_bypass': True, 'extractor_args': {'youtube': {'client': ['android', 'web']}}}) as ydl_s:
                                     res = ydl_s.extract_info(f"ytsearch1:{search_query}", download=False)
                                     if res.get('entries') and res['entries'][0]:
                                         st.session_state.ai_active_preview = f"curr_{idx}"
@@ -1120,7 +1120,7 @@ if st.session_state.current_view == "AI":
                                     if st.button("▶ Play", key=f"hm_play_{h_idx}_{hm_idx}", use_container_width=True):
                                         with st.spinner("연결 중..."):
                                             try:
-                                                with yt_dlp.YoutubeDL({'format': 'bestaudio/best', 'quiet': True, 'geo_bypass': True}) as ydl_s:
+                                                with yt_dlp.YoutubeDL({'format': 'bestaudio/best', 'quiet': True, 'geo_bypass': True, 'extractor_args': {'youtube': {'client': ['android', 'web']}}}) as ydl_s:
                                                     res = ydl_s.extract_info(f"ytsearch1:{hm_t['name']}", download=False)
                                                     if res.get('entries') and res['entries'][0]:
                                                         st.session_state.ai_active_preview = f"hm_{h_idx}_{hm_idx}"
@@ -1175,7 +1175,8 @@ if st.session_state.current_view == "AI":
                                             'format': 'bestaudio/best',
                                             'quiet': True,
                                             'geo_bypass': True,
-                                            'nocheckcertificate': True
+                                            'nocheckcertificate': True,
+                                            'extractor_args': {'youtube': {'client': ['android', 'web']}}
                                         }
                                         with yt_dlp.YoutubeDL(ydl_stream_opts) as ydl_s:
                                             res = ydl_s.extract_info(f"ytsearch1:{h_search_query}", download=False)
@@ -1206,7 +1207,7 @@ elif st.session_state.current_view == "Tracklist":
         if yt_link:
             with st.spinner("트랙리스트를 분석 중입니다..."):
                 try:
-                    with yt_dlp.YoutubeDL({'quiet': True, 'skip_download': True}) as ydl:
+                    with yt_dlp.YoutubeDL({'quiet': True, 'skip_download': True, 'extractor_args': {'youtube': {'client': ['android', 'web']}}}) as ydl:
                         info = ydl.extract_info(yt_link, download=False)
                     extracted = [ch.get('title') for ch in info['chapters']] if info.get('chapters') else ([m.strip() for m in re.findall(r'(?:(?:\d{1,2}:)?\d{1,2}:\d{2})\s*[-–—]?\s*(.+)', info.get('description', ''))] if info.get('description') else [])
                     if extracted:
@@ -1235,7 +1236,7 @@ elif st.session_state.current_view == "Tracklist":
                 from shazamio import Shazam
                 with st.spinner("AI 스캔 준비 중..."):
                     with tempfile.NamedTemporaryFile(delete=False, suffix=".m4a") as tmp_audio: tmp_path = tmp_audio.name
-                    with yt_dlp.YoutubeDL({'format': 'worstaudio/worst', 'outtmpl': tmp_path, 'quiet': True}) as ydl:
+                    with yt_dlp.YoutubeDL({'format': 'worstaudio/worst', 'outtmpl': tmp_path, 'quiet': True, 'extractor_args': {'youtube': {'client': ['android', 'web']}}}) as ydl:
                         duration = ydl.extract_info(yt_link, download=True).get('duration', 3600)
                     async def scan_audio():
                         shazam, results, chunk = Shazam(), [], 180
@@ -1404,7 +1405,7 @@ elif st.session_state.current_view in ["Search", "Bookmarks"]:
                         if st.button("▶ Play", key=f"preview_{dl_key}", help="Instant Preview", use_container_width=True):
                             with st.spinner("Loading stream..."):
                                 try:
-                                    with yt_dlp.YoutubeDL({'format': 'bestaudio/best', 'quiet': True, 'geo_bypass': True}) as ydl_s:
+                                    with yt_dlp.YoutubeDL({'format': 'bestaudio/best', 'quiet': True, 'geo_bypass': True, 'extractor_args': {'youtube': {'client': ['android', 'web']}}}) as ydl_s:
                                         st.session_state.active_preview = i
                                         st.session_state.preview_url = ydl_s.extract_info(video['url'], download=False).get('url')
                                         st.rerun()
@@ -1446,7 +1447,8 @@ elif st.session_state.current_view in ["Search", "Bookmarks"]:
                                         'format': 'bestaudio/best',
                                         'outtmpl': os.path.join(down_dir, f'main_{dl_key}_%(title)s.%(ext)s'),
                                         'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': target_codec}],
-                                        'quiet': True, 'geo_bypass': True, 'progress_hooks': [ytdl_hook]
+                                        'quiet': True, 'geo_bypass': True, 'progress_hooks': [ytdl_hook],
+                                        'extractor_args': {'youtube': {'client': ['android', 'web']}} # 🚨 403 우회 코드
                                     }
                                     if target_codec == 'mp3': ydl_opts_dl['postprocessors'][0]['preferredquality'] = '320'
                                     
