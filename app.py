@@ -419,9 +419,9 @@ def render_inline_search_box(target_id):
                                         st.session_state.inline_dl_status[unique_k] = f"✅ 준비 완료: {clean_t}.{target_codec}"
                                     
                                 st.rerun()
-                            except Exception:
+                            except Exception as ex:
                                 dl_prog.empty()
-                                st.session_state.inline_dl_status[unique_k] = "⚠️ 추출 실패"
+                                st.session_state.inline_dl_status[unique_k] = f"⚠️ 추출 실패 (원인: {str(ex)})"
                                 st.rerun()
 
                 if st.session_state.get('inline_preview_target') == unique_k and st.session_state.get('inline_preview_url'):
@@ -1475,8 +1475,9 @@ elif st.session_state.current_view in ["Search", "Bookmarks"]:
                                         
                                     st.rerun()
                                 except Exception as ex:
-    dl_prog.empty()
-    st.session_state.inline_dl_status[unique_k] = f"⚠️ 추출 실패 (원인: {str(ex)})"
+                                    dl_prog.empty()
+                                    st.session_state.download_status[i] = f"⚠️ 추출 실패 (원인: {str(ex)})"
+                                    st.rerun()
 
                 if i in st.session_state.download_status:
                     s_text = st.session_state.download_status[i]
