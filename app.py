@@ -170,11 +170,11 @@ def analyze_track_pro(file_path):
 
 def fetch_tracks(platform, query):
     prefix = "ytsearch10:" if platform == 'YouTube' else "scsearch5:"
+    # 🚨 검색 시에는 봇 차단이 적은 표준 웹/모바일 멀티 클라이언트 적용으로 검색 누락 방지
     opts = {
         'extract_flat': 'in_playlist', 'quiet': True, 'geo_bypass': True, 'nocheckcertificate': True,
         'source_address': '0.0.0.0', 
-        'extractor_args': {'youtube': {'client': ['ios']}}, 
-        'http_headers': {'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1'}
+        'extractor_args': {'youtube': {'client': ['web', 'ios', 'android']}}
     }
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
@@ -232,6 +232,7 @@ def fetch_and_analyze_single_track(full_name, target_dir):
     temp_id = uuid.uuid4().hex[:8]
     temp_out = os.path.join(target_dir, f"tmp_fast_{temp_id}.%(ext)s")
     
+    # 🚨 다운로드/추출 시에는 403 우회를 위해 ios 클라이언트 강제 적용
     ydl_opts = {
         'format': 'ba[abr<=64]/worstaudio/ba', 
         'outtmpl': temp_out, 
@@ -1226,7 +1227,13 @@ elif st.session_state.current_view == "Tracklist":
     manual_text = st.text_area("텍스트", placeholder="00:00 Artist - Title\n03:30 Artist2 - Title2", label_visibility="collapsed", height=120)
     if st.button("📝 붙여넣은 텍스트에서 트랙 추출", use_container_width=True):
         if manual_text:
-            extracted = [re.sub(r'^\d+[\.\-\)][\s\-]*', '', re.sub(r'\[?(?:(?:\d{1,2}:)?\d{1,2}:\d{2})\]?\s*[-–—]?\s*', '', line).strip()).strip() for line in manual_text.strip().split('\n') if line.strip() and "http" not in line]
+            extracted = []
+            for line in manual_text.strip().split('\n'):
+                if line.strip() and "http" not in line:
+                    cleaned_line = re.sub(r'^\d+[\.\-\)][\s\-]*', '', line.strip())
+                    cleaned_line = re.sub(r'\[?(?:(?:\d{1,2}:)?\d{1,2}:\d{2})\]?\s*[-–—]?\s*', '', cleaned_line).strip()
+                    if cleaned_line:
+                        extracted.append(cleaned_line)
             if extracted:
                 st.session_state.extracted_tracks = extracted
                 st.rerun()
