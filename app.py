@@ -1474,10 +1474,9 @@ elif st.session_state.current_view in ["Search", "Bookmarks"]:
                                             st.session_state.download_status[i] = f"✅ 준비 완료: {clean_t}.{target_codec}"
                                         
                                     st.rerun()
-                                except Exception:
-                                    dl_prog.empty()
-                                    st.session_state.download_status[i] = "⚠️ 추출 실패"
-                                    st.rerun()
+                                except Exception as ex:
+    dl_prog.empty()
+    st.session_state.inline_dl_status[unique_k] = f"⚠️ 추출 실패 (원인: {str(ex)})"
 
                 if i in st.session_state.download_status:
                     s_text = st.session_state.download_status[i]
