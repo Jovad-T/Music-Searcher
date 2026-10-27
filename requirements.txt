@@ -1,11 +1,11 @@
 streamlit
-yt-dlp
+yt-dlp @ git+https://github.com/yt-dlp/yt-dlp.git
 librosa
 numpy
 requests
 groq
 google-genai
- google-generativeai
+google-generativeai
 shazamio
 nest-asyncio
 soundfile

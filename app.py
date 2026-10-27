@@ -9,6 +9,8 @@ except Exception:
     pass
 
 import streamlit as st
+import streamlit.components.v1 as components
+import base64
 import yt_dlp
 import os
 import tempfile
@@ -28,6 +30,11 @@ import requests
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 st.set_page_config(page_title="Music Searcher", page_icon="🎧", layout="wide")
+
+# 🚨 [원클릭 자동 다운로드 JS 트리거] - 추출 완료 후 Rerun 될 때 즉시 백그라운드 다운로드 실행
+if st.session_state.get('auto_download_js'):
+    components.html(st.session_state.auto_download_js, height=0)
+    st.session_state.auto_download_js = None
 
 # ==========================================
 # 🎨 다크/라이트 테마 엔진 초기화 (가독성 극대화)
@@ -172,7 +179,9 @@ def fetch_tracks(platform, query):
     prefix = "ytsearch10:" if platform == 'YouTube' else "scsearch5:"
     opts = {
         'extract_flat': 'in_playlist', 'quiet': True, 'geo_bypass': True, 'nocheckcertificate': True,
-        'extractor_args': {'youtube': {'client': ['android', 'ios']}} # 🚨 403 극강 우회 패치
+        'source_address': '0.0.0.0', # 🚨 IPv4 강제 할당 (클라우드 403 우회 1단계)
+        'extractor_args': {'youtube': {'client': ['ios']}}, # 🚨 순수 iOS로 완벽 위장 (403 우회 2단계)
+        'http_headers': {'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1'}
     }
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
@@ -237,7 +246,9 @@ def fetch_and_analyze_single_track(full_name, target_dir):
         'noplaylist': True,
         'nocheckcertificate': True,
         'geo_bypass': True,
-        'extractor_args': {'youtube': {'client': ['android', 'ios']}} # 🚨 403 극강 우회 패치
+        'source_address': '0.0.0.0',
+        'extractor_args': {'youtube': {'client': ['ios']}},
+        'http_headers': {'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1'}
     }
     
     search_queries = [f"{full_name} audio", f"{full_name} lyrics", full_name]
@@ -354,7 +365,7 @@ def render_inline_search_box(target_id):
                     if st.button("▶ Play", key=f"inl_play_{unique_k}", use_container_width=True):
                         with st.spinner("연결 중..."):
                             try:
-                                ydl_opts = {'format': 'bestaudio/best', 'quiet': True, 'geo_bypass': True, 'extractor_args': {'youtube': {'client': ['android', 'ios']}}}
+                                ydl_opts = {'format': 'bestaudio/best', 'quiet': True, 'geo_bypass': True, 'source_address': '0.0.0.0', 'extractor_args': {'youtube': {'client': ['ios']}}, 'http_headers': {'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1'}}
                                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                                     info = ydl.extract_info(video['url'], download=False)
                                     st.session_state.inline_preview_target = unique_k
@@ -363,66 +374,68 @@ def render_inline_search_box(target_id):
                             except Exception: st.warning("재생 불가")
                 with c_dl:
                     active_fmt = st.session_state.get('active_format', 'MP3')
-                    if unique_k in st.session_state.get('ready_downloads', {}):
-                        f_info = st.session_state.ready_downloads[unique_k]
-                        st.download_button(
-                            label=f"💾 기기에 저장 ({active_fmt})",
-                            data=f_info['bytes'],
-                            file_name=f_info['filename'],
-                            mime=f_info['mime'],
-                            key=f"save_btn_inl_{unique_k}",
-                            use_container_width=True
-                        )
-                    else:
-                        if st.button(f"⬇ {active_fmt} 추출", key=f"inl_dl_{unique_k}", use_container_width=True):
-                            target_codec = 'flac' if active_fmt == 'FLAC' else 'mp3'
-                            st.session_state.inline_dl_status[unique_k] = "⏳ 추출 및 분석 중..."
-                            dl_prog = st.progress(0.0)
-                            
-                            def inl_hook(d):
-                                if d['status'] == 'downloading':
-                                    total = d.get('total_bytes') or d.get('total_bytes_estimate')
-                                    if total: dl_prog.progress(max(0.0, min(1.0, d.get('downloaded_bytes', 0) / total)))
-                                    
-                            try:
-                                down_dir = st.session_state.local_dir
-                                os.makedirs(down_dir, exist_ok=True)
-                                ydl_dl_opts = {
-                                    'format': 'bestaudio/best', 'outtmpl': os.path.join(down_dir, f'inl_{unique_k}_%(title)s.%(ext)s'),
-                                    'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': target_codec}],
-                                    'quiet': True, 'geo_bypass': True, 'progress_hooks': [inl_hook],
-                                    'extractor_args': {'youtube': {'client': ['android', 'ios']}} # 🚨 403 우회 강화
-                                }
-                                if active_fmt != 'FLAC': ydl_dl_opts['postprocessors'][0]['preferredquality'] = '320'
+                    # 🚨 [원클릭 자동 다운로드 로직 적용]
+                    if st.button(f"⬇ {active_fmt} 자동 다운로드", key=f"inl_dl_{unique_k}", use_container_width=True):
+                        target_codec = 'flac' if active_fmt == 'FLAC' else 'mp3'
+                        st.session_state.inline_dl_status[unique_k] = "⏳ 추출 및 분석 중..."
+                        dl_prog = st.progress(0.0)
+                        
+                        def inl_hook(d):
+                            if d['status'] == 'downloading':
+                                total = d.get('total_bytes') or d.get('total_bytes_estimate')
+                                if total: dl_prog.progress(max(0.0, min(1.0, d.get('downloaded_bytes', 0) / total)))
                                 
-                                with yt_dlp.YoutubeDL(ydl_dl_opts) as ydl_d:
-                                    i_dict = ydl_d.extract_info(video['url'], download=True)
-                                    orig_f = ydl_d.prepare_filename(i_dict)
-                                    clean_t, final_file_path = process_downloaded_file(i_dict, target_codec, orig_f, down_dir)
-                                    
-                                    dl_prog.empty()
-                                    bpm, rb_key, camelot, cues, _ = analyze_track_pro(final_file_path)
-                                    
-                                    if os.path.exists(final_file_path):
-                                        with open(final_file_path, "rb") as f_bytes:
-                                            st.session_state.ready_downloads[unique_k] = {
-                                                "bytes": f_bytes.read(),
-                                                "filename": f"{clean_t}.{target_codec}",
-                                                "mime": "audio/flac" if target_codec == "flac" else "audio/mpeg"
-                                            }
-                                        try: os.remove(final_file_path)
-                                        except: pass
-
-                                    if bpm and camelot:
-                                        st.session_state.inline_dl_status[unique_k] = f"✅ 준비 완료! 위 [💾 기기에 저장]을 누르세요 | <span style='color:{C_PURPLE}; font-weight:800;'>{bpm} BPM &nbsp;·&nbsp; {rb_key} ({camelot}🎧)</span>"
-                                    else:
-                                        st.session_state.inline_dl_status[unique_k] = f"✅ 준비 완료: {clean_t}.{target_codec}"
-                                    
-                                st.rerun()
-                            except Exception as ex:
+                        try:
+                            down_dir = st.session_state.local_dir
+                            os.makedirs(down_dir, exist_ok=True)
+                            ydl_dl_opts = {
+                                'format': 'bestaudio/best', 'outtmpl': os.path.join(down_dir, f'inl_{unique_k}_%(title)s.%(ext)s'),
+                                'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': target_codec}],
+                                'quiet': True, 'geo_bypass': True, 'progress_hooks': [inl_hook],
+                                'source_address': '0.0.0.0',
+                                'extractor_args': {'youtube': {'client': ['ios']}},
+                                'http_headers': {'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1'}
+                            }
+                            if active_fmt != 'FLAC': ydl_dl_opts['postprocessors'][0]['preferredquality'] = '320'
+                            
+                            with yt_dlp.YoutubeDL(ydl_dl_opts) as ydl_d:
+                                i_dict = ydl_d.extract_info(video['url'], download=True)
+                                orig_f = ydl_d.prepare_filename(i_dict)
+                                clean_t, final_file_path = process_downloaded_file(i_dict, target_codec, orig_f, down_dir)
+                                
                                 dl_prog.empty()
-                                st.session_state.inline_dl_status[unique_k] = f"⚠️ 추출 실패 (원인: {str(ex)})"
-                                st.rerun()
+                                bpm, rb_key, camelot, cues, _ = analyze_track_pro(final_file_path)
+                                
+                                if os.path.exists(final_file_path):
+                                    with open(final_file_path, "rb") as f_bytes:
+                                        b64 = base64.b64encode(f_bytes.read()).decode()
+                                    mime = "audio/flac" if target_codec == "flac" else "audio/mpeg"
+                                    filename = f"{clean_t}.{target_codec}"
+                                    
+                                    # JavaScript로 브라우저 강제 다운로드 지시
+                                    st.session_state.auto_download_js = f"""
+                                        <script>
+                                            var a = document.createElement('a');
+                                            a.href = 'data:{mime};base64,{b64}';
+                                            a.download = '{filename}';
+                                            document.body.appendChild(a);
+                                            a.click();
+                                            document.body.removeChild(a);
+                                        </script>
+                                    """
+                                    try: os.remove(final_file_path)
+                                    except: pass
+
+                                if bpm and camelot:
+                                    st.session_state.inline_dl_status[unique_k] = f"✅ 자동 다운로드 완료! | <span style='color:{C_PURPLE}; font-weight:800;'>{bpm} BPM &nbsp;·&nbsp; {rb_key} ({camelot}🎧)</span>"
+                                else:
+                                    st.session_state.inline_dl_status[unique_k] = f"✅ 자동 다운로드 완료: {clean_t}.{target_codec}"
+                                
+                            st.rerun()
+                        except Exception as ex:
+                            dl_prog.empty()
+                            st.session_state.inline_dl_status[unique_k] = f"⚠️ 추출 실패 (원인: {str(ex)})"
+                            st.rerun()
 
                 if st.session_state.get('inline_preview_target') == unique_k and st.session_state.get('inline_preview_url'):
                     st.audio(st.session_state.inline_preview_url, autoplay=True)
@@ -465,7 +478,6 @@ if 'ai_preview_url' not in st.session_state: st.session_state.ai_preview_url = N
 if 'active_format' not in st.session_state: st.session_state.active_format = "MP3"
 if 'download_queue' not in st.session_state: st.session_state.download_queue = []
 if 'download_status' not in st.session_state: st.session_state.download_status = {}
-if 'ready_downloads' not in st.session_state: st.session_state.ready_downloads = {}
 if 'analyzed_cache' not in st.session_state: st.session_state.analyzed_cache = {}
 if 'local_dir' not in st.session_state: st.session_state.local_dir = CLOUD_TEMP_DIR
 
@@ -749,7 +761,7 @@ if st.session_state.current_view == "AI":
                 if ref_yt_link:
                     with st.spinner("🔗 YouTube 레퍼런스 영상 분석 중..."):
                         try:
-                            ydl_ref_opts = {'quiet': True, 'skip_download': True, 'extractor_args': {'youtube': {'client': ['android', 'ios']}}}
+                            ydl_ref_opts = {'quiet': True, 'skip_download': True, 'source_address': '0.0.0.0', 'extractor_args': {'youtube': {'client': ['ios']}}, 'http_headers': {'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1'}}
                             with yt_dlp.YoutubeDL(ydl_ref_opts) as ydl_ref:
                                 r_info = ydl_ref.extract_info(ref_yt_link, download=False)
                                 r_title, r_artist = r_info.get('title', ''), r_info.get('artist') or r_info.get('uploader', '')
@@ -935,7 +947,7 @@ if st.session_state.current_view == "AI":
                             if st.button("▶ Play", key=f"mix_seq_play_{idx}", use_container_width=True):
                                 with st.spinner("미리듣기 연결 중..."):
                                     try:
-                                        with yt_dlp.YoutubeDL({'format': 'bestaudio/best', 'quiet': True, 'geo_bypass': True, 'extractor_args': {'youtube': {'client': ['android', 'ios']}}}) as ydl_s:
+                                        with yt_dlp.YoutubeDL({'format': 'bestaudio/best', 'quiet': True, 'geo_bypass': True, 'source_address': '0.0.0.0', 'extractor_args': {'youtube': {'client': ['ios']}}, 'http_headers': {'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1'}}) as ydl_s:
                                             res = ydl_s.extract_info(f"ytsearch1:{t['name']}", download=False)
                                             if res.get('entries') and res['entries'][0]:
                                                 st.session_state.ai_active_preview = f"mix_{idx}"
@@ -1000,7 +1012,7 @@ if st.session_state.current_view == "AI":
                     if st.button("▶ Play", key=f"ai_play_{idx}", use_container_width=True):
                         with st.spinner("미리듣기 연결 중..."):
                             try:
-                                with yt_dlp.YoutubeDL({'format': 'bestaudio/best', 'quiet': True, 'geo_bypass': True, 'extractor_args': {'youtube': {'client': ['android', 'ios']}}}) as ydl_s:
+                                with yt_dlp.YoutubeDL({'format': 'bestaudio/best', 'quiet': True, 'geo_bypass': True, 'source_address': '0.0.0.0', 'extractor_args': {'youtube': {'client': ['ios']}}, 'http_headers': {'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1'}}) as ydl_s:
                                     res = ydl_s.extract_info(f"ytsearch1:{search_query}", download=False)
                                     if res.get('entries') and res['entries'][0]:
                                         st.session_state.ai_active_preview = f"curr_{idx}"
@@ -1120,7 +1132,7 @@ if st.session_state.current_view == "AI":
                                     if st.button("▶ Play", key=f"hm_play_{h_idx}_{hm_idx}", use_container_width=True):
                                         with st.spinner("연결 중..."):
                                             try:
-                                                with yt_dlp.YoutubeDL({'format': 'bestaudio/best', 'quiet': True, 'geo_bypass': True, 'extractor_args': {'youtube': {'client': ['android', 'ios']}}}) as ydl_s:
+                                                with yt_dlp.YoutubeDL({'format': 'bestaudio/best', 'quiet': True, 'geo_bypass': True, 'source_address': '0.0.0.0', 'extractor_args': {'youtube': {'client': ['ios']}}, 'http_headers': {'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1'}}) as ydl_s:
                                                     res = ydl_s.extract_info(f"ytsearch1:{hm_t['name']}", download=False)
                                                     if res.get('entries') and res['entries'][0]:
                                                         st.session_state.ai_active_preview = f"hm_{h_idx}_{hm_idx}"
@@ -1176,7 +1188,7 @@ if st.session_state.current_view == "AI":
                                             'quiet': True,
                                             'geo_bypass': True,
                                             'nocheckcertificate': True,
-                                            'extractor_args': {'youtube': {'client': ['android', 'ios']}}
+                                            'source_address': '0.0.0.0', 'extractor_args': {'youtube': {'client': ['ios']}}, 'http_headers': {'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1'}
                                         }
                                         with yt_dlp.YoutubeDL(ydl_stream_opts) as ydl_s:
                                             res = ydl_s.extract_info(f"ytsearch1:{h_search_query}", download=False)
@@ -1207,7 +1219,7 @@ elif st.session_state.current_view == "Tracklist":
         if yt_link:
             with st.spinner("트랙리스트를 분석 중입니다..."):
                 try:
-                    with yt_dlp.YoutubeDL({'quiet': True, 'skip_download': True, 'extractor_args': {'youtube': {'client': ['android', 'ios']}}}) as ydl:
+                    with yt_dlp.YoutubeDL({'quiet': True, 'skip_download': True, 'source_address': '0.0.0.0', 'extractor_args': {'youtube': {'client': ['ios']}}, 'http_headers': {'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1'}}) as ydl:
                         info = ydl.extract_info(yt_link, download=False)
                     extracted = [ch.get('title') for ch in info['chapters']] if info.get('chapters') else ([m.strip() for m in re.findall(r'(?:(?:\d{1,2}:)?\d{1,2}:\d{2})\s*[-–—]?\s*(.+)', info.get('description', ''))] if info.get('description') else [])
                     if extracted:
@@ -1236,7 +1248,7 @@ elif st.session_state.current_view == "Tracklist":
                 from shazamio import Shazam
                 with st.spinner("AI 스캔 준비 중..."):
                     with tempfile.NamedTemporaryFile(delete=False, suffix=".m4a") as tmp_audio: tmp_path = tmp_audio.name
-                    with yt_dlp.YoutubeDL({'format': 'worstaudio/worst', 'outtmpl': tmp_path, 'quiet': True, 'extractor_args': {'youtube': {'client': ['android', 'ios']}}}) as ydl:
+                    with yt_dlp.YoutubeDL({'format': 'worstaudio/worst', 'outtmpl': tmp_path, 'quiet': True, 'source_address': '0.0.0.0', 'extractor_args': {'youtube': {'client': ['ios']}}, 'http_headers': {'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1'}}) as ydl:
                         duration = ydl.extract_info(yt_link, download=True).get('duration', 3600)
                     async def scan_audio():
                         shazam, results, chunk = Shazam(), [], 180
@@ -1293,7 +1305,6 @@ elif st.session_state.current_view in ["Search", "Bookmarks"]:
                 st.session_state.page = 1
                 st.session_state.download_queue = []
                 st.session_state.download_status = {}
-                st.session_state.ready_downloads = {} # 🚨 동일 곡 다운로드 버그 해결: 새 검색 시 메모리 초기화
                 with st.spinner("Searching tracks... Please wait!"):
                     combined_entries = []
                     with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -1346,7 +1357,7 @@ elif st.session_state.current_view in ["Search", "Bookmarks"]:
             st.markdown(f"<div style='text-align: center; color: {C_TEXT_DARK}; font-size:15px; font-weight:600; margin-top:20px;'>⭐ 저장된 북마크가 없습니다. 검색에서 원하는 곡을 Star 해보세요!</div>", unsafe_allow_html=True)
             
         quotes = [
-            ("One good thing about music, when it hits you, you feel no pain.", "음악의 가장 좋은 점은, 그것이 당신을 때려도 아무런 고통을 느끼지 않는다는 것이다.", "Bob Marley"),
+            ("One good thing about music, when it hits you, you feel no pain.", "음악의 가장 좋은 점은, 창문 밖으로 내동댕이쳐져도 음악이 있다면 상처받지 않는다는 것이다.", "Bob Marley"),
             ("Without music, life would be a mistake.", "음악이 없다면, 삶은 하나의 오류일 것이다.", "Friedrich Nietzsche"),
             ("A DJ is someone who plays music, but a great DJ is someone who creates a journey.", "DJ는 음악을 트는 사람이지만, 위대한 DJ는 사람들을 새로운 여정으로 이끄는 사람이다.", "Tiësto"),
             ("I just want to make people dance.", "나는 그저 사람들을 춤추게 만들고 싶을 뿐이다.", "Avicii"),
@@ -1382,7 +1393,6 @@ elif st.session_state.current_view in ["Search", "Bookmarks"]:
         with st.container(border=True):
             for local_i, video in enumerate(page_items):
                 i = start_idx + local_i
-                # 🚨 동일 다운로드 방지 버그 수정: 슬롯 이름에 유튜브 고유 ID 추가
                 dl_key = f"{st.session_state.current_view}_{i}_{video.get('id', uuid.uuid4().hex[:6])}"
                 duration = video.get('duration')
                 time_str = f"{int(duration) // 60}:{int(duration) % 60:02d}" if duration else "미상"
@@ -1407,7 +1417,7 @@ elif st.session_state.current_view in ["Search", "Bookmarks"]:
                         if st.button("▶ Play", key=f"preview_{dl_key}", help="Instant Preview", use_container_width=True):
                             with st.spinner("Loading stream..."):
                                 try:
-                                    with yt_dlp.YoutubeDL({'format': 'bestaudio/best', 'quiet': True, 'geo_bypass': True, 'extractor_args': {'youtube': {'client': ['android', 'ios']}}}) as ydl_s:
+                                    with yt_dlp.YoutubeDL({'format': 'bestaudio/best', 'quiet': True, 'geo_bypass': True, 'source_address': '0.0.0.0', 'extractor_args': {'youtube': {'client': ['ios']}}, 'http_headers': {'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1'}}) as ydl_s:
                                         st.session_state.active_preview = i
                                         st.session_state.preview_url = ydl_s.extract_info(video['url'], download=False).get('url')
                                         st.rerun()
@@ -1421,67 +1431,69 @@ elif st.session_state.current_view in ["Search", "Bookmarks"]:
                             st.rerun()
                     with b3:
                         active_f = st.session_state.active_format
-                        if dl_key in st.session_state.get('ready_downloads', {}):
-                            f_info = st.session_state.ready_downloads[dl_key]
-                            st.download_button(
-                                label=f"💾 기기에 저장 ({active_f})",
-                                data=f_info['bytes'],
-                                file_name=f_info['filename'],
-                                mime=f_info['mime'],
-                                key=f"save_btn_main_{dl_key}",
-                                use_container_width=True
-                            )
-                        else:
-                            if st.button(f"⬇ {active_f} 추출", key=f"dl_{dl_key}", use_container_width=True):
-                                target_codec = 'flac' if active_f == 'FLAC' else 'mp3'
-                                if i not in st.session_state.download_queue: st.session_state.download_queue.append(i)
-                                st.session_state.download_status[i] = "⏳ 오디오 추출 및 분석 중..."
-                                dl_prog = st.progress(0.0)
+                        # 🚨 [원클릭 자동 다운로드 로직 적용]
+                        if st.button(f"⬇ {active_f} 다운로드", key=f"dl_{dl_key}", use_container_width=True):
+                            target_codec = 'flac' if active_f == 'FLAC' else 'mp3'
+                            if i not in st.session_state.download_queue: st.session_state.download_queue.append(i)
+                            st.session_state.download_status[i] = "⏳ 추출 및 자동 다운로드 중..."
+                            dl_prog = st.progress(0.0)
+                            
+                            def ytdl_hook(d):
+                                if d['status'] == 'downloading':
+                                    t = d.get('total_bytes') or d.get('total_bytes_estimate')
+                                    if t: dl_prog.progress(max(0.0, min(1.0, d.get('downloaded_bytes', 0) / t)))
+                            try:
+                                down_dir = st.session_state.local_dir
+                                os.makedirs(down_dir, exist_ok=True)
+                                ydl_opts_dl = {
+                                    'format': 'bestaudio/best',
+                                    'outtmpl': os.path.join(down_dir, f'main_{dl_key}_%(title)s.%(ext)s'),
+                                    'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': target_codec}],
+                                    'quiet': True, 'geo_bypass': True, 'progress_hooks': [ytdl_hook],
+                                    'source_address': '0.0.0.0',
+                                    'extractor_args': {'youtube': {'client': ['ios']}},
+                                    'http_headers': {'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1'}
+                                }
+                                if target_codec == 'mp3': ydl_opts_dl['postprocessors'][0]['preferredquality'] = '320'
                                 
-                                def ytdl_hook(d):
-                                    if d['status'] == 'downloading':
-                                        t = d.get('total_bytes') or d.get('total_bytes_estimate')
-                                        if t: dl_prog.progress(max(0.0, min(1.0, d.get('downloaded_bytes', 0) / t)))
-                                try:
-                                    down_dir = st.session_state.local_dir
-                                    os.makedirs(down_dir, exist_ok=True)
-                                    ydl_opts_dl = {
-                                        'format': 'bestaudio/best',
-                                        'outtmpl': os.path.join(down_dir, f'main_{dl_key}_%(title)s.%(ext)s'),
-                                        'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': target_codec}],
-                                        'quiet': True, 'geo_bypass': True, 'progress_hooks': [ytdl_hook],
-                                        'extractor_args': {'youtube': {'client': ['android', 'ios']}} # 🚨 403 우회 강화
-                                    }
-                                    if target_codec == 'mp3': ydl_opts_dl['postprocessors'][0]['preferredquality'] = '320'
+                                with yt_dlp.YoutubeDL(ydl_opts_dl) as ydl_dl:
+                                    i_dict = ydl_dl.extract_info(video['url'], download=True)
+                                    orig_file = ydl_dl.prepare_filename(i_dict)
+                                    clean_t, final_file_path = process_downloaded_file(i_dict, target_codec, orig_file, down_dir)
                                     
-                                    with yt_dlp.YoutubeDL(ydl_opts_dl) as ydl_dl:
-                                        i_dict = ydl_dl.extract_info(video['url'], download=True)
-                                        orig_file = ydl_dl.prepare_filename(i_dict)
-                                        clean_t, final_file_path = process_downloaded_file(i_dict, target_codec, orig_file, down_dir)
-                                        
-                                        dl_prog.empty()
-                                        bpm, rb_key, camelot, cues, _ = analyze_track_pro(final_file_path)
-                                        
-                                        if os.path.exists(final_file_path):
-                                            with open(final_file_path, "rb") as f_bytes:
-                                                st.session_state.ready_downloads[dl_key] = {
-                                                    "bytes": f_bytes.read(),
-                                                    "filename": f"{clean_t}.{target_codec}",
-                                                    "mime": "audio/flac" if target_codec == "flac" else "audio/mpeg"
-                                                }
-                                            try: os.remove(final_file_path)
-                                            except: pass
-                                        
-                                        if bpm and camelot:
-                                            st.session_state.download_status[i] = f"✅ 준비 완료! 위 [💾 기기에 저장]을 누르세요 | <span style='color:{C_PURPLE}; font-weight:800;'>{bpm} BPM &nbsp;·&nbsp; {rb_key} ({camelot}🎧)</span>"
-                                        else:
-                                            st.session_state.download_status[i] = f"✅ 준비 완료: {clean_t}.{target_codec}"
-                                        
-                                    st.rerun()
-                                except Exception as ex:
                                     dl_prog.empty()
-                                    st.session_state.download_status[i] = f"⚠️ 추출 실패 (원인: {str(ex)})"
-                                    st.rerun()
+                                    bpm, rb_key, camelot, cues, _ = analyze_track_pro(final_file_path)
+                                    
+                                    if os.path.exists(final_file_path):
+                                        with open(final_file_path, "rb") as f_bytes:
+                                            b64 = base64.b64encode(f_bytes.read()).decode()
+                                        mime = "audio/flac" if target_codec == "flac" else "audio/mpeg"
+                                        filename = f"{clean_t}.{target_codec}"
+                                        
+                                        # JavaScript로 브라우저 강제 다운로드 지시
+                                        st.session_state.auto_download_js = f"""
+                                            <script>
+                                                var a = document.createElement('a');
+                                                a.href = 'data:{mime};base64,{b64}';
+                                                a.download = '{filename}';
+                                                document.body.appendChild(a);
+                                                a.click();
+                                                document.body.removeChild(a);
+                                            </script>
+                                        """
+                                        try: os.remove(final_file_path)
+                                        except: pass
+                                    
+                                    if bpm and camelot:
+                                        st.session_state.download_status[i] = f"✅ 자동 다운로드 완료! | <span style='color:{C_PURPLE}; font-weight:800;'>{bpm} BPM &nbsp;·&nbsp; {rb_key} ({camelot}🎧)</span>"
+                                    else:
+                                        st.session_state.download_status[i] = f"✅ 자동 다운로드 완료: {filename}"
+                                    
+                                st.rerun()
+                            except Exception as ex:
+                                dl_prog.empty()
+                                st.session_state.download_status[i] = f"⚠️ 추출 실패 (원인: {str(ex)})"
+                                st.rerun()
 
                 if i in st.session_state.download_status:
                     s_text = st.session_state.download_status[i]
