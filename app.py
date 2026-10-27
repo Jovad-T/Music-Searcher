@@ -50,73 +50,44 @@ else:
 
 yt_icon = f'<svg height="15" width="20" viewBox="0 0 24 24" style="fill: {C_DANGER}; vertical-align: middle; margin-right: 6px;"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>'
 
-# 📂 스크립트 실행 위치 및 클라우드 임시 폴더 설정
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-BOOKMARKS_FILE = os.path.join(BASE_DIR, "bookmarks.json")
-API_KEYS_FILE = os.path.join(BASE_DIR, "api_keys.json")
-AI_HISTORY_FILE = os.path.join(BASE_DIR, "ai_playlists_history.json")
+# 📂 클라우드 임시 폴더 설정 (사용자 간 파일 충돌 방지)
 CLOUD_TEMP_DIR = os.path.join(tempfile.gettempdir(), "music_searcher_temp")
 os.makedirs(CLOUD_TEMP_DIR, exist_ok=True)
 
-# 🔑 듀얼 엔진 API 키 관리 로직 (Streamlit Cloud Secrets 우선 연동)
+# 🔑 다중 사용자 보안 모드: 서버 하드디스크에 개인정보(키/북마크/히스토리)를 저장하지 않고 개별 브라우저 세션에서만 관리
 def load_api_keys():
-    keys = {"gemini": "", "groq": ""}
-    # 1. Streamlit Cloud Secrets 확인
+    keys = {
+        "gemini": st.session_state.get("saved_gemini_key", ""),
+        "groq": st.session_state.get("saved_groq_key", "")
+    }
+    # 관리자가 Streamlit Secrets에 기본 키를 넣어둔 경우에만 폴백으로 사용
     try:
-        if "GEMINI_API_KEY" in st.secrets:
+        if not keys["gemini"] and "GEMINI_API_KEY" in st.secrets:
             keys["gemini"] = st.secrets["GEMINI_API_KEY"]
-        if "GROQ_API_KEY" in st.secrets:
+        if not keys["groq"] and "GROQ_API_KEY" in st.secrets:
             keys["groq"] = st.secrets["GROQ_API_KEY"]
     except Exception:
         pass
-
-    # 2. 로컬 JSON 파일 확인
-    if os.path.exists(API_KEYS_FILE):
-        try:
-            with open(API_KEYS_FILE, "r", encoding="utf-8") as f:
-                saved = json.load(f)
-                if not keys["gemini"] and saved.get("gemini"): keys["gemini"] = saved["gemini"]
-                if not keys["groq"] and saved.get("groq"): keys["groq"] = saved["groq"]
-        except Exception: pass
     return keys
 
 def save_api_keys(gemini, groq):
-    keys = {"gemini": str(gemini).strip(), "groq": str(groq).strip()}
-    try:
-        with open(API_KEYS_FILE, "w", encoding="utf-8") as f:
-            json.dump(keys, f, ensure_ascii=False, indent=4)
-        return True
-    except Exception:
-        return False
+    st.session_state.saved_gemini_key = str(gemini).strip()
+    st.session_state.saved_groq_key = str(groq).strip()
+    return True
 
 def load_ai_history():
-    if os.path.exists(AI_HISTORY_FILE):
-        try:
-            with open(AI_HISTORY_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception: pass
-    return []
+    return st.session_state.get("ai_history", [])
 
 def save_ai_history(history_data):
-    try:
-        with open(AI_HISTORY_FILE, "w", encoding="utf-8") as f:
-            json.dump(history_data, f, ensure_ascii=False, indent=4)
-        return True
-    except Exception: return False
+    st.session_state.ai_history = history_data
+    return True
 
 def load_bookmarks():
-    if os.path.exists(BOOKMARKS_FILE):
-        try:
-            with open(BOOKMARKS_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception: pass
-    return []
+    return st.session_state.get("bookmarks", [])
 
 def save_bookmarks(bms):
-    try:
-        with open(BOOKMARKS_FILE, "w", encoding="utf-8") as f:
-            json.dump(bms, f, ensure_ascii=False, indent=4)
-    except Exception: pass
+    st.session_state.bookmarks = bms
+    return True
 
 def get_compatible_keys(camelot):
     match = re.match(r"(\d+)([AB])", camelot)
@@ -481,8 +452,8 @@ def save_key_callback():
         st.session_state.key_save_status = "empty"
 
 # 세션 상태 초기화
-if 'bookmarks' not in st.session_state: st.session_state.bookmarks = load_bookmarks()
-if 'ai_history' not in st.session_state: st.session_state.ai_history = load_ai_history()
+if 'bookmarks' not in st.session_state: st.session_state.bookmarks = []
+if 'ai_history' not in st.session_state: st.session_state.ai_history = []
 if 'current_view' not in st.session_state: st.session_state.current_view = "Search"
 if 'search_query' not in st.session_state: st.session_state.search_query = ""
 if 'search_results' not in st.session_state: st.session_state.search_results = []
@@ -706,23 +677,23 @@ if st.session_state.current_view == "AI":
 
     with tab2:
         st.markdown(f"<br><p style='color:{C_ACCENT}; font-weight:700; margin-bottom:10px;'>✨ 자연어 & 레퍼런스 기반 플레이리스트 큐레이션</p>", unsafe_allow_html=True)
-        st.markdown(f"<p style='color:{C_TEXT_MUTED}; font-size:15px; margin-bottom:20px;'>듀얼 엔진(Groq/Gemini) 자동 우회 시스템과 모델별 추론/사고 엔진 선택이 지원됩니다.</p>", unsafe_allow_html=True)
+        st.markdown(f"<p style='color:{C_TEXT_MUTED}; font-size:15px; margin-bottom:20px;'>듀얼 엔진(Groq/Gemini) 자동 우회 시스템과 모델별 추론/사고 엔진 선택이 지원됩니다. (입력하신 API 키는 현재 브라우저 세션에만 안전하게 보관됩니다.)</p>", unsafe_allow_html=True)
         
         saved_keys = load_api_keys()
         
         col_groq, col_gemini, col_save = st.columns([4.2, 4.2, 1.6])
         with col_groq:
             api_key_groq = st.text_input("⚡ Groq API Key (초고속 엔진)", type="password", placeholder="gsk_...", key="groq_api_key_input")
-            if saved_keys.get("groq"): st.markdown(f"<span style='color:{C_SUCCESS}; font-size:13px; font-weight:600;'>✓ 적용됨 ({saved_keys['groq'][:6]}...)</span>", unsafe_allow_html=True)
+            if saved_keys.get("groq"): st.markdown(f"<span style='color:{C_SUCCESS}; font-size:13px; font-weight:600;'>✓ 현재 세션에 적용됨 ({saved_keys['groq'][:6]}...)</span>", unsafe_allow_html=True)
         with col_gemini:
             api_key_gemini = st.text_input("🧠 Gemini API Key (정밀/한글 엔진)", type="password", placeholder="AI Studio 키", key="gemini_api_key_input")
-            if saved_keys.get("gemini"): st.markdown(f"<span style='color:{C_SUCCESS}; font-size:13px; font-weight:600;'>✓ 적용됨 ({saved_keys['gemini'][:6]}...)</span>", unsafe_allow_html=True)
+            if saved_keys.get("gemini"): st.markdown(f"<span style='color:{C_SUCCESS}; font-size:13px; font-weight:600;'>✓ 현재 세션에 적용됨 ({saved_keys['gemini'][:6]}...)</span>", unsafe_allow_html=True)
         with col_save:
             st.markdown("<div style='height:28px;'></div>", unsafe_allow_html=True)
-            st.button("💾 Keys 저장", use_container_width=True, key="btn_save_keys", on_click=save_key_callback)
+            st.button("💾 Keys 적용", use_container_width=True, key="btn_save_keys", on_click=save_key_callback)
 
         if st.session_state.get("key_save_status") == "success":
-            st.success("✅ 키 저장 완료! (클라우드 영구 등록은 Streamlit Secrets 설정을 권장합니다)")
+            st.success("✅ 현재 브라우저 세션에 키가 안전하게 적용되었습니다!")
             st.session_state.key_save_status = None
         elif st.session_state.get("key_save_status") == "empty":
             st.warning("키를 입력하세요")
@@ -764,14 +735,16 @@ if st.session_state.current_view == "AI":
         user_prompt = st.text_area("어떤 분위기나 상황의 음악이 필요한가요?", placeholder="예: 70~80년대 정통 디스코 사운드, 브라스와 현악기 세션이 살아있는 신나는 곡 (bpm 100~115)", height=100, key="gemini_user_prompt_input")
         
         if st.button("🎵 AI 플레이리스트 생성", use_container_width=True, key="btn_gen_ai_playlist"):
-            active_groq = api_key_groq or saved_keys.get("groq")
-            active_gemini = api_key_gemini or saved_keys.get("gemini")
+            active_groq = api_key_groq.strip() or saved_keys.get("groq")
+            active_gemini = api_key_gemini.strip() or saved_keys.get("gemini")
             
             if not active_groq and not active_gemini:
                 st.warning("Groq 또는 Gemini API Key 중 하나는 반드시 입력해주세요.")
             elif not user_prompt and not selected_genres and not ref_yt_link:
                 st.warning("레퍼런스 링크, 선호 장르, 분위기/상황 설명 중 적어도 하나를 입력해주세요.")
             else:
+                # 입력된 키를 현재 세션에 자동 반영
+                save_api_keys(active_gemini or "", active_groq or "")
                 ref_info_context = ""
                 if ref_yt_link:
                     with st.spinner("🔗 YouTube 레퍼런스 영상 분석 중..."):
@@ -1048,9 +1021,27 @@ if st.session_state.current_view == "AI":
                 render_inline_search_box(f"curr_track_{idx}")
                 st.markdown(f"<hr style='margin: 12px 0; border: none; border-top: 1px solid {C_BORDER};'>", unsafe_allow_html=True)
 
+        # AI 히스토리 백업 및 복원 영역
+        st.markdown(f"<br><br><h4 style='color:{C_ACCENT}; font-weight:800; border-bottom:1px solid {C_BORDER}; padding-bottom:8px;'>📜 지난 AI 플레이리스트 기록 히스토리</h4>", unsafe_allow_html=True)
+        with st.expander("💾 AI 히스토리 전체 백업 및 복원 (클라우드 데이터 유지용)"):
+            c_hi_ex, c_hi_im = st.columns(2)
+            with c_hi_ex:
+                hi_json = json.dumps(st.session_state.ai_history, ensure_ascii=False, indent=4)
+                st.download_button("📥 히스토리 전체 JSON 백업", data=hi_json, file_name="my_ai_history.json", mime="application/json", use_container_width=True)
+            with c_hi_im:
+                up_hi = st.file_uploader("📤 백업한 히스토리 JSON 불러오기", type=["json"], label_visibility="collapsed", key="upload_ai_hist_json")
+                if up_hi:
+                    try:
+                        loaded_hi = json.load(up_hi)
+                        if isinstance(loaded_hi, list):
+                            st.session_state.ai_history = loaded_hi
+                            save_ai_history(loaded_hi)
+                            st.success("히스토리 복원 완료!")
+                            st.rerun()
+                    except Exception:
+                        st.error("올바른 JSON 파일이 아닙니다.")
+
         if st.session_state.get('ai_history'):
-            st.markdown(f"<br><br><h4 style='color:{C_ACCENT}; font-weight:800; border-bottom:1px solid {C_BORDER}; padding-bottom:8px;'>📜 지난 AI 플레이리스트 기록 히스토리</h4>", unsafe_allow_html=True)
-            
             for h_idx, h_item in enumerate(st.session_state.ai_history):
                 h_time = h_item.get("timestamp", "시간 미상")
                 h_model = h_item.get("model", "")
@@ -1327,7 +1318,7 @@ elif st.session_state.current_view in ["Search", "Bookmarks"]:
                 st.warning("Please enter a search query!")
     else:
         # 북마크 백업 및 복원 영역 (클라우드 초기화 대비)
-        with st.expander("💾 북마크 백업 및 복원 (클라우드 데이터 유지용)"):
+        with st.expander("💾 북마크 백업 및 복원 (내 기기에 보관용)"):
             c_bm_ex, c_bm_im = st.columns(2)
             with c_bm_ex:
                 bm_json = json.dumps(st.session_state.bookmarks, ensure_ascii=False, indent=4)
