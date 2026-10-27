@@ -172,8 +172,8 @@ def fetch_tracks(platform, query):
     prefix = "ytsearch10:" if platform == 'YouTube' else "scsearch5:"
     opts = {
         'extract_flat': 'in_playlist', 'quiet': True, 'geo_bypass': True, 'nocheckcertificate': True,
-        'source_address': '0.0.0.0', # 🚨 IPv4 강제 할당 (클라우드 403 우회 1단계)
-        'extractor_args': {'youtube': {'client': ['ios']}}, # 🚨 순수 iOS로 완벽 위장 (403 우회 2단계)
+        'source_address': '0.0.0.0', 
+        'extractor_args': {'youtube': {'client': ['ios']}}, 
         'http_headers': {'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1'}
     }
     try:
@@ -1226,7 +1226,7 @@ elif st.session_state.current_view == "Tracklist":
     manual_text = st.text_area("텍스트", placeholder="00:00 Artist - Title\n03:30 Artist2 - Title2", label_visibility="collapsed", height=120)
     if st.button("📝 붙여넣은 텍스트에서 트랙 추출", use_container_width=True):
         if manual_text:
-            extracted = [re.sub(r'^\d+[\.\-\)][\s\-]*', '', re.sub(r'\[?(?:(?:\d{1,2}:)?\d{1,2}:\d{2})\]?\s*[-–—]?\s*', '', line).strip()).strip() for line in manual_text.strip().split('\n'] if line.strip() and "http" not in line]
+            extracted = [re.sub(r'^\d+[\.\-\)][\s\-]*', '', re.sub(r'\[?(?:(?:\d{1,2}:)?\d{1,2}:\d{2})\]?\s*[-–—]?\s*', '', line).strip()).strip() for line in manual_text.strip().split('\n') if line.strip() and "http" not in line]
             if extracted:
                 st.session_state.extracted_tracks = extracted
                 st.rerun()
@@ -1495,19 +1495,6 @@ elif st.session_state.current_view in ["Search", "Bookmarks"]:
                     s_text = st.session_state.download_status[i]
                     c_code = C_SUCCESS if "완료" in s_text else (C_ACCENT_HOVER if "추출" in s_text else C_DANGER)
                     st.markdown(f"<div style='color: {c_code}; font-size: 16px; font-weight: 700; margin-top: 4px; text-align: right;'>{s_text}</div>", unsafe_allow_html=True)
-                
-                # 🚨 추출 완료 후 바로 나타나는 표준 다운로드 버튼
-                if dl_key in st.session_state.get('ready_downloads', {}):
-                    f_info = st.session_state.ready_downloads[dl_key]
-                    st.download_button(
-                        label=f"💾 기기에 저장 ({active_format}) - {f_info['filename']}",
-                        data=f_info['bytes'],
-                        file_name=f_info['filename'],
-                        mime=f_info['mime'],
-                        key=f"final_save_btn_{dl_key}",
-                        use_container_width=True
-                    )
-
                 if st.session_state.active_preview == i and st.session_state.preview_url:
                     st.audio(st.session_state.preview_url, autoplay=True)
                 if local_i < len(page_items) - 1:
