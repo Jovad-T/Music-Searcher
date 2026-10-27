@@ -1,2 +1,11 @@
 streamlit
 yt-dlp
+librosa
+numpy
+requests
+groq
+google-genai
+ google-generativeai
+shazamio
+nest-asyncio
+soundfile
